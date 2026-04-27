@@ -97,4 +97,15 @@ async generator 用 `yield` 边执行边输出，实现：
 
 ## 作业
 
-把 `max_turns=5` 改成 `max_turns=2`，观察超出限制时的提示。
+在 `async for chunk in stream` 循环里，加几行打印：
+
+```python
+if delta.tool_calls:
+    for tc in delta.tool_calls:
+        print(f"  chunk: index={tc.index}, name={tc.function.name!r}, args_fragment={tc.function.arguments!r}")
+```
+
+然后问 agent "帮我 echo hello"，观察：
+- `name` 只在第一个 chunk 出现，后续是 `None`
+- `arguments` 分多个 chunk 到达，每次是 JSON 的一个片段
+- 理解为什么 `name` 用 `=`，`arguments` 用 `+=`
