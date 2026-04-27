@@ -72,8 +72,9 @@ for tc in delta.tool_calls:
     if tc.function.arguments:
         tool_calls_raw[idx]["arguments"] += tc.function.arguments  # 用 +=，拼接！
 
-# 流结束后，再 json.loads() 解析完整参数
-args = json.loads(tc["arguments"])
+# 流结束后，从收集字典里取完整参数，再 json.loads() 解析
+for collected in tool_calls_raw.values():
+    args = json.loads(collected["arguments"])
 ```
 
 ## 运行

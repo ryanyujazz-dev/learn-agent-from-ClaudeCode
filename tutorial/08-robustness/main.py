@@ -39,8 +39,8 @@ class BashTool(Tool):
                     "properties": {"command": {"type": "string"}},
                     "required": ["command"]}
 
-    # 追踪 cwd 的可变状态
-    current_cwd: str = ""
+    def __init__(self):
+        self.current_cwd: str = ""
 
     async def call(self, args: dict, cwd: str) -> ToolResult:
         if not self.current_cwd:
