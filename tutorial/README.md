@@ -1,4 +1,4 @@
-# Mini-Claude 从零到一：11节课构建你自己的 AI Agent
+# Mini-Claude 从零到一：12节课构建你自己的 AI Agent
 
 ## 目标学员
 
@@ -23,6 +23,7 @@
 | 9 | `09-permission` | 正则 + 持久化规则 | 危险命令被拦截 |
 | 10 | `10-memory` | CLAUDE.md + JSON 会话 | 跨会话记住项目信息 |
 | 11 | `11-full-repl` | ToolUseContext + is_error | 完整 mini-claude REPL |
+| 12 | `12-rich-status` | 事件协议 + rich spinner | 实时展示 agent 状态 |
 
 ## 运行方式
 

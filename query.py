@@ -33,6 +33,23 @@ def _tools_to_schema(tools: list) -> list:
     return [t.to_api_schema() for t in tools]
 
 
+def _tool_summary(name: str, args: dict, result: "ToolResult") -> str:
+    """Generate a human-readable one-line summary for a tool call."""
+    if name == "bash":
+        cmd = args.get("command", "").split("\n")[0][:40]
+        return f"bash({cmd})"
+    if name == "file_write":
+        lines = args.get("content", "").count("\n") + 1
+        return f"file_write({args.get('path', '')}) [{lines} lines]"
+    if name == "file_read":
+        return f"file_read({args.get('path', '')})"
+    if name == "glob":
+        return f"glob({args.get('pattern', '')})"
+    if name == "grep":
+        return f"grep({args.get('pattern', '')!r})"
+    return name
+
+
 async def _dispatch_tool(name: str, args: dict, context: ToolUseContext) -> ToolResult:
     for tool in context.tools:
         if tool.name == name:
@@ -125,9 +142,10 @@ async def query(
             except json.JSONDecodeError:
                 args = {}
 
-            yield f"\n[tool: {tc['name']}({args})]\n"
+            yield f"\x00TOOL:{tc['name']}:{json.dumps(args, ensure_ascii=False)}"
             result = await _dispatch_tool(tc["name"], args, context)
-            yield f"[result: {'ERROR' if result.error else 'OK'}] {str(result.data)[:500]}\n"
+            summary = _tool_summary(tc["name"], args, result)
+            yield f"\x00DONE:{'ERR' if result.error else 'OK'}:{summary}"
 
             tool_msg = {
                 "role": "tool",
