@@ -177,7 +177,28 @@ for attempt in range(3):
 
 ---
 
-## 五、下一步
+## 六、教程课程与根目录代码的差异
+
+教程课程（Lesson 1-12）是**有意简化**的版本，根目录是完整实现。差异如下：
+
+| 功能 | 根目录 | 教程课程 | 引入课程 |
+|------|--------|---------|---------|
+| 工具数量 | 5个（bash, file_read, file_write, glob, grep） | 3个（无 glob, grep） | Lesson 7 |
+| API 重试 | 有（指数退避，跳过4xx） | Lesson 8 有，Lesson 12 无 | Lesson 8 |
+| 命令超时 | 有（asyncio.wait_for） | Lesson 8 有，Lesson 12 无 | Lesson 8 |
+| 危险命令规则 | 10条 | 5条 | Lesson 9 |
+| 路径检查 | 独立模块 + `os.sep` 防前缀误匹配 | 内联，无 `os.sep` 保护 | Lesson 9 |
+| 会话存储位置 | `~/.mini-claude/sessions/` | 脚本同目录 `latest.json` | Lesson 10 |
+| 会话归档 | 每次保存同时写时间戳副本 | 无归档 | 根目录独有 |
+| 会话完整性校验 | `_is_complete()` 校验 tool_call_id 配对 | 无校验 | 根目录独有 |
+| `permission_mode` 值 | `"default"` / `"bypass"` | `"default"` / `"auto"` | Lesson 11 |
+| 状态展示 | rich spinner + 事件协议 | Lesson 12 有 | Lesson 12 |
+
+**为什么教程不完全对齐根目录？**
+
+每节课只引入一个新概念。如果 Lesson 12 包含所有功能，代码会超过400行，淹没本节的核心（事件协议 + rich spinner）。
+
+教程的目标是让你理解每个概念，根目录是把所有概念组合在一起的完整版本。学完12节课后，阅读根目录代码，你会认出每一行的来源。
 
 如果你想继续深入：
 
