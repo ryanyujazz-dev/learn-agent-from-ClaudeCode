@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Optional
-from security.command_check import check_command
-from security.rules import check_rule, add_rule
+from .security.command_check import check_command
+from .security.rules import check_rule
 
 
 @dataclass
@@ -11,6 +11,10 @@ class ToolUseContext:
     tools: list["Tool"]
     permission_mode: str = "default"  # default | auto | bypass
     cwd: str = ""
+    preapproved_permissions: set[str] = field(default_factory=set)
+    session_allowed_tools: set[str] = field(default_factory=set)
+    waiting_for_permission: bool = False
+    keyboard_monitor_restore: Any = None
 
 
 @dataclass
@@ -37,23 +41,31 @@ class Tool(ABC):
         2. Persistent allow/deny rules
         3. Interactive prompt with session-level bypass
         """
+        command = args.get("command", args.get("path", str(args)))
+
         if self.is_read_only(args):
             return True
 
         # 1. Dangerous command check
-        command = args.get("command", args.get("path", str(args)))
         check = check_command(command)
         if not check.safe:
             print(f"[BLOCKED] {check.reason}")
             return False
 
-        # 2. Persistent rules
-        rule = check_rule(self.name, command)
-        if rule == "allow":
+        permission_key = f"{self.name}:{command}"
+        if context and permission_key in context.preapproved_permissions:
+            context.preapproved_permissions.remove(permission_key)
             return True
+
+        # 2. Persistent deny/allow rules
+        rule = check_rule(self.name, command)
         if rule == "deny":
             print(f"[DENIED by rule] {command}")
             return False
+        if context and self.name in context.session_allowed_tools:
+            return True
+        if rule == "allow":
+            return True
 
         # 3. Session bypass
         if context and context.permission_mode == "bypass":
@@ -61,14 +73,19 @@ class Tool(ABC):
 
         # 4. Interactive prompt — show intent for clarity
         intent = check.intent
-        answer = input(f"Allow {self.name} ({intent})? [y/N/a(lways)/d(eny always)] ").strip().lower()
+        if context:
+            context.waiting_for_permission = True
+            if context.keyboard_monitor_restore:
+                context.keyboard_monitor_restore()
+        try:
+            answer = input(f"Allow {self.name} ({intent})? [y] once/[a] session/[N] no ").strip().lower()
+        finally:
+            if context:
+                context.waiting_for_permission = False
         if answer == "a":
-            # Store as persistent allow rule (mirrors original "always allow this pattern")
-            add_rule("allow", self.name, command)
+            if context:
+                context.session_allowed_tools.add(self.name)
             return True
-        if answer == "d":
-            add_rule("deny", self.name, command)
-            return False
         if answer == "y":
             return True
         return False

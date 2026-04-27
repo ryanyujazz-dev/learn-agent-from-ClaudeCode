@@ -1,5 +1,5 @@
-from tool import Tool, ToolResult, ToolUseContext
-from security.path_check import check_path
+from ..tool import Tool, ToolResult, ToolUseContext
+from ..security.path_check import check_path
 import os
 
 

@@ -1,6 +1,6 @@
 # 架构专题：从脚本到生产级 Agent
 
-> 本文面向完成11节课的学习者。你已经能构建完整的 mini-claude，现在来理解**为什么这样设计**。
+> 本文面向完成12节课的学习者。你已经能构建完整的 mini-claude，现在来理解**为什么这样设计**。
 
 ---
 
@@ -14,6 +14,7 @@ Lesson 8     健壮性          超时 + 重试 + cwd追踪
 Lesson 9     安全层          危险命令拦截 + 路径越界检测
 Lesson 10    记忆层          CLAUDE.md + 会话持久化
 Lesson 11    依赖注入        ToolUseContext → 稳定接口
+Lesson 12    展示层          事件协议 + rich spinner
 ```
 
 每一步都在解决一个真实问题，不是为了复杂而复杂。
@@ -24,19 +25,19 @@ Lesson 11    依赖注入        ToolUseContext → 稳定接口
 
 ```
 ┌─────────────────────────────────────┐
-│  REPL (main.py)                     │  用户交互层
+│  REPL (mini_claude/main.py)         │  用户交互层
 │  readline, /quit, /clear, --resume  │
 ├─────────────────────────────────────┤
-│  Agentic Loop (query.py)            │  核心循环层
+│  Agentic Loop (mini_claude/query.py)│  核心循环层
 │  LLM调用, 工具分发, 流式输出         │
 ├─────────────────────────────────────┤
 │  Tool System (tool.py + tools/)     │  工具层
 │  统一接口, 权限检查, 路径安全        │
 ├─────────────────────────────────────┤
-│  Memory (memory/)                   │  记忆层
+│  Memory (mini_claude/memory/)       │  记忆层
 │  CLAUDE.md注入, 会话持久化           │
 ├─────────────────────────────────────┤
-│  Security (security/)               │  安全层
+│  Security (mini_claude/security/)   │  安全层
 │  危险命令拦截, 路径越界检测          │
 └─────────────────────────────────────┘
 ```
@@ -170,7 +171,7 @@ for attempt in range(3):
 | 工具输出结构化校验 | LLM 返回的 JSON 可能格式错误 | JSON Schema 校验 |
 | 细粒度权限模型 | 只能 allow/deny 整条命令 | per-file, per-directory 规则 |
 | 可观测性 | 出错时难以排查 | 结构化日志 + 追踪 ID |
-| 多 LLM 后端 | 绑定 ZhipuAI | 抽象 LLM 接口，支持切换 |
+| 多 LLM 后端 | 支持 OpenAI 兼容接口，非兼容协议需适配 | 抽象 LLM 接口，支持多协议切换 |
 | 会话完整性校验 | 恢复损坏的 JSON 会崩溃 | 校验 messages 结构再加载 |
 
 这些不是 mini-claude 的缺陷，而是**有意简化**——每个都可以作为进阶练习。
@@ -191,6 +192,7 @@ for attempt in range(3):
 | 会话存储位置 | `~/.mini-claude/sessions/` | 脚本同目录 `latest.json` | Lesson 10 |
 | 会话归档 | 每次保存同时写时间戳副本 | 无归档 | 根目录独有 |
 | 会话完整性校验 | `_is_complete()` 校验 tool_call_id 配对 | 无校验 | 根目录独有 |
+| Esc 中断 | 有（后台线程监听，asyncio 竞争取消） | 无 | 根目录独有 |
 | `permission_mode` 值 | `"default"` / `"bypass"` | `"default"` / `"auto"` | Lesson 11 |
 | 状态展示 | rich spinner + 事件协议 | Lesson 12 有 | Lesson 12 |
 
@@ -204,5 +206,5 @@ for attempt in range(3):
 
 1. **实现并发工具调用**：当 LLM 返回多个 tool_calls 时，用 `asyncio.gather()` 并发执行
 2. **添加结构化日志**：用 `logging` 模块记录每次工具调用的输入输出
-3. **支持更多工具**：参考 `tools/` 目录，实现 `GlobTool`、`GrepTool`
+3. **支持更多工具**：参考 `mini_claude/tools/` 目录，实现更多工具
 4. **对比原版**：阅读 `src/query.ts`、`src/Tool.ts`，找出 Python 版与 TypeScript 版的设计差异

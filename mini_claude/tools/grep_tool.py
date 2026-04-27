@@ -1,4 +1,4 @@
-from tool import Tool, ToolResult, ToolUseContext
+from ..tool import Tool, ToolResult, ToolUseContext
 import glob as glob_mod
 import os
 import re

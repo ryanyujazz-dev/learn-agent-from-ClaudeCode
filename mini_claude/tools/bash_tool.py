@@ -1,5 +1,19 @@
-from tool import Tool, ToolResult, ToolUseContext
+from ..tool import Tool, ToolResult, ToolUseContext
 import asyncio
+import os
+import signal
+
+
+def _kill_process_tree(proc) -> None:
+    if proc.returncode is not None:
+        return
+    try:
+        if os.name == "nt":
+            proc.kill()
+        else:
+            os.killpg(proc.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
 
 
 class BashTool(Tool):
@@ -27,13 +41,18 @@ class BashTool(Tool):
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=context.cwd or None,
+                start_new_session=True,
             )
             timeout = args.get("timeout", 30)
             try:
                 stdout_b, stderr_b = await asyncio.wait_for(proc.communicate(), timeout=timeout)
             except asyncio.TimeoutError:
-                proc.kill()
+                _kill_process_tree(proc)
                 return ToolResult(data="Command timed out.", error=True)
+            except asyncio.CancelledError:
+                _kill_process_tree(proc)
+                await proc.communicate()
+                raise
 
             stdout_lines = stdout_b.decode(errors="replace").splitlines()
             if stdout_lines:

@@ -3,8 +3,8 @@ import os
 import asyncio
 from typing import AsyncGenerator, Optional
 from openai import AsyncOpenAI, APIError
-from tool import Tool, ToolUseContext, ToolResult
-from config import load_config
+from .tool import ToolUseContext, ToolResult
+from .config import load_config
 
 _client: Optional[AsyncOpenAI] = None
 _model: Optional[str] = None
@@ -57,11 +57,16 @@ def _tool_summary(name: str, args: dict, result: "ToolResult") -> str:
     return name
 
 
-async def _dispatch_tool(name: str, args: dict, context: ToolUseContext) -> ToolResult:
+def _find_tool(name: str, context: ToolUseContext):
     for tool in context.tools:
         if tool.name == name:
-            return await tool.call(args, context)
-    return ToolResult(data=f"Unknown tool: {name}", error=True)
+            return tool
+    return None
+
+
+def _permission_key(tool, args: dict) -> str:
+    command = args.get("command", args.get("path", str(args)))
+    return f"{tool.name}:{command}"
 
 
 async def query(
@@ -149,8 +154,40 @@ async def query(
             except json.JSONDecodeError:
                 args = {}
 
+            tool = _find_tool(tc["name"], context)
+            if tool is None:
+                result = ToolResult(data=f"Unknown tool: {tc['name']}", error=True)
+                summary = _tool_summary(tc["name"], args, result)
+                yield f"\x00DONE:ERR:{summary}"
+                tool_msg = {
+                    "role": "tool",
+                    "tool_call_id": tc["id"],
+                    "content": str(result.data),
+                    "is_error": True,
+                }
+                messages.append(tool_msg)
+                api_messages.append(tool_msg)
+                continue
+
+            if not tool.check_permissions(args, context):
+                result = ToolResult(data="Permission denied.", error=True)
+                summary = _tool_summary(tc["name"], args, result)
+                yield f"\x00DONE:ERR:{summary}"
+                tool_msg = {
+                    "role": "tool",
+                    "tool_call_id": tc["id"],
+                    "content": str(result.data),
+                    "is_error": True,
+                }
+                messages.append(tool_msg)
+                api_messages.append(tool_msg)
+                continue
+
+            if not tool.is_read_only(args):
+                context.preapproved_permissions.add(_permission_key(tool, args))
+
             yield f"\x00TOOL:{tc['name']}:{json.dumps(args, ensure_ascii=False)}"
-            result = await _dispatch_tool(tc["name"], args, context)
+            result = await tool.call(args, context)
             summary = _tool_summary(tc["name"], args, result)
             yield f"\x00DONE:{'ERR' if result.error else 'OK'}:{summary}"
 
