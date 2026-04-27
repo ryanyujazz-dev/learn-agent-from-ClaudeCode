@@ -187,8 +187,8 @@ class FileWriteTool(Tool):
 
 # ── Agentic Loop ──────────────────────────────────────────────
 client = AsyncOpenAI(
-    api_key=os.environ["ZHIPUAI_API_KEY"],
-    base_url="https://open.bigmodel.cn/api/paas/v4/",
+    api_key=os.environ["LLM_API_KEY"],
+    base_url=os.environ.get("LLM_BASE_URL", "https://open.bigmodel.cn/api/paas/v4/"),
 )
 TOOLS = [BashTool(), FileReadTool(), FileWriteTool()]
 
@@ -198,7 +198,7 @@ async def query(messages: list, system_prompt: str, context: "ToolUseContext", m
     turn = 0
     while turn < max_turns:
         stream = await client.chat.completions.create(
-            model="glm-5.1", messages=api_messages,
+            model=os.environ.get("LLM_MODEL", "glm-5.1"), messages=api_messages,
             tools=[t.to_api_schema() for t in context.tools], stream=True,
         )
         full_text = ""

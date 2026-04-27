@@ -4,17 +4,24 @@ import asyncio
 from typing import AsyncGenerator, Optional
 from openai import AsyncOpenAI, APIError
 from tool import Tool, ToolUseContext, ToolResult
+from config import load_config
 
 _client: Optional[AsyncOpenAI] = None
+_model: Optional[str] = None
 
 def _get_client() -> AsyncOpenAI:
-    global _client
+    global _client, _model
     if _client is None:
-        _client = AsyncOpenAI(
-            api_key=os.environ["ZHIPUAI_API_KEY"],
-            base_url="https://open.bigmodel.cn/api/paas/v4/",
-        )
+        cfg = load_config()
+        _model = cfg["model"]
+        _client = AsyncOpenAI(api_key=cfg["api_key"], base_url=cfg["base_url"])
     return _client
+
+
+def get_model() -> str:
+    if _model is None:
+        _get_client()
+    return _model
 
 
 async def _create_stream_with_retry(client, **kwargs):
@@ -78,7 +85,7 @@ async def query(
         # 1. Stream from LLM (with retry)
         stream = await _create_stream_with_retry(
             client,
-            model="glm-5.1",
+            model=get_model(),
             messages=api_messages,
             tools=_tools_to_schema(context.tools) or None,
             stream=True,

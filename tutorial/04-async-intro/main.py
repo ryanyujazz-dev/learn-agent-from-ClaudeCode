@@ -7,8 +7,8 @@ import asyncio
 from openai import AsyncOpenAI
 
 client = AsyncOpenAI(
-    api_key=os.environ["ZHIPUAI_API_KEY"],
-    base_url="https://open.bigmodel.cn/api/paas/v4/",
+    api_key=os.environ["LLM_API_KEY"],
+    base_url=os.environ.get("LLM_BASE_URL", "https://open.bigmodel.cn/api/paas/v4/"),
 )
 
 messages = []
@@ -26,7 +26,7 @@ async def chat():
         messages.append({"role": "user", "content": user_input})
 
         stream = await client.chat.completions.create(
-            model="glm-5.1",
+            model=os.environ.get("LLM_MODEL", "glm-5.1"),
             messages=messages,
             stream=True,
         )

@@ -76,8 +76,8 @@ class BashTool(Tool):
 
 # ── API 重试 ──────────────────────────────────────────────────
 client = AsyncOpenAI(
-    api_key=os.environ["ZHIPUAI_API_KEY"],
-    base_url="https://open.bigmodel.cn/api/paas/v4/",
+    api_key=os.environ["LLM_API_KEY"],
+    base_url=os.environ.get("LLM_BASE_URL", "https://open.bigmodel.cn/api/paas/v4/"),
 )
 
 
@@ -99,7 +99,7 @@ async def query(messages: list, cwd: str, max_turns: int = 10):
     turn = 0
     while turn < max_turns:
         stream = await _create_stream_with_retry(
-            client, model="glm-5.1", messages=messages,
+            client, model=os.environ.get("LLM_MODEL", "glm-5.1"), messages=messages,
             tools=[t.to_api_schema() for t in TOOLS], stream=True,
         )
         full_text = ""

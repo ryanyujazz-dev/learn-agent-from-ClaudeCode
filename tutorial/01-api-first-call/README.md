@@ -8,7 +8,10 @@
 
 ```bash
 pip install openai
-export ZHIPUAI_API_KEY="你的key"
+# 支持任何 OpenAI 兼容接口：ZhipuAI、OpenAI、DeepSeek、Ollama 等
+export LLM_API_KEY="你的key"
+export LLM_BASE_URL="https://open.bigmodel.cn/api/paas/v4/"  # 可选，默认 ZhipuAI
+export LLM_MODEL="glm-5.1"                                    # 可选，默认 glm-5.1
 ```
 
 ## 核心代码解读
