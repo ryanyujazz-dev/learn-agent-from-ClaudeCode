@@ -8,7 +8,7 @@ from rich.status import Status
 
 from tool import ToolUseContext
 from tools import ALL_TOOLS
-from query import query
+from query import query, get_model
 from memory.claudemd import load_claudemd
 from memory.session import save_session, load_latest_session
 
@@ -26,7 +26,7 @@ async def repl(resume: bool = False, auto: bool = False):
     if resume and messages:
         console.print(f"[dim][Resumed session with {len(messages)} messages][/]")
 
-    console.print("mini-claude (glm-5.1) — type 'exit' to quit\n")
+    console.print(f"mini-claude ({get_model()}) — type 'exit' to quit\n")
 
     while True:
         try:
