@@ -41,6 +41,32 @@ asyncio.run(chat())
 python3 main.py
 ```
 
+## asyncio.gather() — 并发的威力
+
+异步真正的价值在于**同时做多件事**：
+
+```python
+import asyncio, time
+
+async def slow_task(name, seconds):
+    await asyncio.sleep(seconds)  # 模拟耗时操作
+    return f"{name} 完成"
+
+async def main():
+    start = time.time()
+
+    # 串行：总耗时 = 2 + 2 = 4 秒
+    r1 = await slow_task("任务A", 2)
+    r2 = await slow_task("任务B", 2)
+
+    # 并发：总耗时 ≈ 2 秒（同时进行）
+    r1, r2 = await asyncio.gather(
+        slow_task("任务A", 2),
+        slow_task("任务B", 2),
+    )
+    print(f"耗时: {time.time() - start:.1f}s")
+```
+
 ## 作业
 
-思考：为什么 agent 需要异步？（提示：agent 调用工具时，工具执行需要时间）
+修改 `main.py`，在对话开始前用 `asyncio.gather()` 同时发两个不同问题给 LLM，打印两个回复，观察总耗时是否比串行快。

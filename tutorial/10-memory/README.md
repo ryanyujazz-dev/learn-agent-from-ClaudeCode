@@ -1,4 +1,4 @@
-# Lesson 9 — 记忆系统
+# Lesson 10 — 记忆系统
 
 ## 本节新概念
 
@@ -59,3 +59,28 @@ python3 main.py --resume
 ## 作业
 
 在 `CLAUDE.md` 里写上你的项目说明，观察 agent 的回答是否有变化。
+
+## 重要设计：为什么要分 messages 和 api_messages？
+
+```python
+# messages：持久化存储（不含 system prompt）
+messages = []
+
+# api_messages：发给 API 的完整列表（含 system prompt）
+api_messages = [{"role": "system", "content": claude_md}] + messages
+```
+
+**原因**：`system` 消息不应该存入 `latest.json`。
+如果存了，`--resume` 时会重复注入 system prompt，导致 LLM 收到两份相同的项目说明。
+
+## 重要设计：每轮自动保存
+
+```python
+async for text in query(...):
+    print(text, end="", flush=True)
+print()
+save_session(messages)  # 每轮结束后立即保存
+```
+
+只在 `/quit` 时保存的问题：用户按 Ctrl+C 时，整轮对话丢失。
+每轮保存确保任何退出方式都不丢数据。

@@ -48,6 +48,34 @@ async for text in query(...):
     print(text, end="")
 ```
 
+## 流式 tool_calls 拼接（重要细节）
+
+LLM 流式输出时，一个工具调用的参数可能**分多个 chunk 到达**：
+
+```
+chunk 1: {id: "call_1", name: "echo", arguments: "{\"mes"}
+chunk 2: {arguments: "sage\": \"hello\"}"}
+chunk 3: {arguments: ""}   ← 结束
+```
+
+所以我们用一个字典收集，用 `+=` 拼接 arguments：
+
+```python
+tool_calls_raw: dict[int, dict] = {}  # index → {id, name, arguments}
+
+for tc in delta.tool_calls:
+    idx = tc.index
+    if idx not in tool_calls_raw:
+        tool_calls_raw[idx] = {"id": "", "name": "", "arguments": ""}
+    if tc.function.name:
+        tool_calls_raw[idx]["name"] = tc.function.name   # 用 =，名字只来一次
+    if tc.function.arguments:
+        tool_calls_raw[idx]["arguments"] += tc.function.arguments  # 用 +=，拼接！
+
+# 流结束后，再 json.loads() 解析完整参数
+args = json.loads(tc["arguments"])
+```
+
 ## 运行
 
 ```bash
