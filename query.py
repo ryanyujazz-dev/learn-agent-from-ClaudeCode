@@ -1,11 +1,11 @@
 import json
 import os
 import asyncio
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 from openai import AsyncOpenAI, APIError
 from tool import Tool, ToolUseContext, ToolResult
 
-_client: AsyncOpenAI | None = None
+_client: Optional[AsyncOpenAI] = None
 
 def _get_client() -> AsyncOpenAI:
     global _client
@@ -27,6 +27,9 @@ async def _create_stream_with_retry(client, **kwargs):
                 raise
             await asyncio.sleep(2 ** attempt)
     raise RuntimeError("unreachable")
+
+
+def _tools_to_schema(tools: list) -> list:
     return [t.to_api_schema() for t in tools]
 
 

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Optional
 from security.command_check import check_command
 from security.rules import check_rule, add_rule
 
@@ -30,7 +30,7 @@ class Tool(ABC):
     async def call(self, args: dict, context: ToolUseContext) -> ToolResult:
         ...
 
-    def check_permissions(self, args: dict, context: "ToolUseContext | None" = None) -> bool:
+    def check_permissions(self, args: dict, context: "Optional[ToolUseContext]" = None) -> bool:
         """
         Three-step permission check — mirrors bashPermissions.ts:
         1. Static dangerous pattern check (always blocks)

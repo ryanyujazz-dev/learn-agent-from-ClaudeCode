@@ -1,0 +1,51 @@
+# Lesson 7 — 真实工具
+
+## 本节新概念
+
+**asyncio.create_subprocess_shell**：异步执行 shell 命令，不阻塞事件循环。
+
+## 为什么用异步 subprocess？
+
+```python
+# 同步（会阻塞）
+import subprocess
+result = subprocess.run("sleep 3", shell=True)  # 卡住 3 秒，期间什么都做不了
+
+# 异步（不阻塞）
+proc = await asyncio.create_subprocess_shell("sleep 3", ...)
+await proc.communicate()  # 等待时可以处理其他任务
+```
+
+## BashTool 核心逻辑
+
+```python
+proc = await asyncio.create_subprocess_shell(
+    command,
+    stdout=asyncio.subprocess.PIPE,
+    stderr=asyncio.subprocess.PIPE,
+)
+stdout, stderr = await proc.communicate()
+```
+
+- `PIPE` 表示捕获输出（不打印到屏幕）
+- `proc.communicate()` 等待命令结束，返回 stdout 和 stderr
+
+## FileReadTool
+
+```python
+with open(path, "r", encoding="utf-8") as f:
+    return ToolResult(data=f.read())
+```
+
+简单的文件读取，但要注意路径安全（下节课讲）。
+
+## 运行
+
+```bash
+python3 main.py
+# 试着说：「列出当前目录的文件」或「读取 /etc/hostname」
+```
+
+## 作业
+
+实现 `FileWriteTool`：接受 `path` 和 `content`，把内容写入文件。
