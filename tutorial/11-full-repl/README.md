@@ -61,6 +61,29 @@ python3 main.py --resume  # 恢复上次会话
 python3 main.py --auto    # 自动允许所有工具
 ```
 
+## 架构思考：ToolUseContext 解决了什么问题
+
+**没有它时**，每次给工具加一个新参数，所有工具签名都要改：
+
+```python
+# Lesson 7：call(args, cwd)
+# Lesson 8：call(args, cwd)  ← 超时在 BashTool 内部硬编码
+# 如果要让调用方控制超时：call(args, cwd, timeout)  ← 所有工具都要改
+# 再加权限模式：call(args, cwd, timeout, auto)  ← 再改一遍
+```
+
+**有了它**，context 是一个容器，随时可以加字段，工具签名永远不变：
+
+```python
+call(args, context)  # 永远是这个签名
+
+# 加 timeout：context.timeout = 30
+# 加权限模式：context.permission_mode = "auto"
+# 加任何东西：context.xxx = ...
+```
+
+这是**依赖注入**模式的核心价值：把"变化的部分"封装进容器，稳定接口。
+
 ## 作业
 
 对比本文件与项目根目录的 `main.py`，找出它们的相同点和不同点。

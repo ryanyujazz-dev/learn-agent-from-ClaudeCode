@@ -35,6 +35,10 @@ cd tutorial/01-api-first-call
 python3 main.py
 ```
 
+## 进阶阅读
+
+完成11节课后，阅读 [architecture.md](./architecture.md) — 系统讲解每个架构决策背后的"为什么"。
+
 ## 学习建议
 
 1. 按顺序学，每节课都跑通再进入下一节
