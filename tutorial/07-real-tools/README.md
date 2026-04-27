@@ -37,7 +37,22 @@ with open(path, "r", encoding="utf-8") as f:
     return ToolResult(data=f.read())
 ```
 
-简单的文件读取，但要注意路径安全（下节课讲）。
+简单的文件读取，但要注意路径安全（Lesson 9 讲）。
+
+## is_read_only() 是什么？
+
+代码里有一个 `is_read_only()` 方法：
+
+```python
+def is_read_only(self, args: dict) -> bool:
+    return True  # FileReadTool 只读，不需要权限确认
+```
+
+**作用**：告诉权限系统"这个工具只读，不需要询问用户"。
+- `FileReadTool.is_read_only()` 返回 `True` → 直接执行，不弹权限提示
+- `BashTool.is_read_only()` 返回 `False` → 需要权限检查（Lesson 9 实现）
+
+现在这个方法还没有被调用，Lesson 9 会把它接入权限系统。
 
 ## 运行
 

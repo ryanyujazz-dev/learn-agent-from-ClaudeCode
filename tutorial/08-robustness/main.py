@@ -1,46 +1,15 @@
 """
-Lesson 9: 记忆系统
-新概念: CLAUDE.md 注入, 向上遍历目录, messages JSON 持久化, --resume
+Lesson 8: 健壮性工程
+新概念: asyncio.wait_for 超时, 指数退避重试, cd cwd 追踪
 """
 import os
-import sys
 import json
 import asyncio
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from openai import AsyncOpenAI
-
-SESSION_FILE = os.path.join(os.path.dirname(__file__), "latest.json")
+from openai import AsyncOpenAI, APIError
 
 
-def load_claude_md(start_dir: str) -> str:
-    """向上遍历目录，收集所有 CLAUDE.md 内容。"""
-    parts = []
-    path = os.path.abspath(start_dir)
-    while True:
-        candidate = os.path.join(path, "CLAUDE.md")
-        if os.path.exists(candidate):
-            parts.append(open(candidate, encoding="utf-8").read().strip())
-        parent = os.path.dirname(path)
-        if parent == path:
-            break
-        path = parent
-    return "\n\n".join(parts)
-
-
-def save_session(messages: list) -> None:
-    with open(SESSION_FILE, "w", encoding="utf-8") as f:
-        json.dump(messages, f, ensure_ascii=False, indent=2)
-
-
-def load_session() -> list:
-    if os.path.exists(SESSION_FILE):
-        with open(SESSION_FILE, encoding="utf-8") as f:
-            return json.load(f)
-    return []
-
-
-# ── 工具基类（复用自 Lesson 8）────────────────────────────────
 @dataclass
 class ToolResult:
     data: str
@@ -65,37 +34,72 @@ class Tool(ABC):
 
 class BashTool(Tool):
     name = "bash"
-    description_text = "执行 shell 命令"
-    input_schema = {
-        "type": "object",
-        "properties": {"command": {"type": "string"}},
-        "required": ["command"],
-    }
+    description_text = "执行 shell 命令，支持 cd 切换目录"
+    input_schema = {"type": "object",
+                    "properties": {"command": {"type": "string"}},
+                    "required": ["command"]}
+
+    def __init__(self):
+        self.current_cwd: str = ""
 
     async def call(self, args: dict, cwd: str) -> ToolResult:
+        if not self.current_cwd:
+            self.current_cwd = cwd
+
+        # 追加 pwd 以追踪 cd 后的新目录
+        full_cmd = args["command"] + "\npwd"
         proc = await asyncio.create_subprocess_shell(
-            args["command"], cwd=cwd,
+            full_cmd, cwd=self.current_cwd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        stdout, stderr = await proc.communicate()
-        return ToolResult(data=(stdout.decode() + stderr.decode()).strip())
+
+        try:
+            # 超时保护：30秒
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=30)
+        except asyncio.TimeoutError:
+            proc.kill()
+            return ToolResult(data="命令超时（30秒）", error=True)
+
+        output = stdout.decode()
+        err = stderr.decode()
+
+        # 从最后一行读取新 cwd
+        lines = output.strip().splitlines()
+        if lines and lines[-1].startswith("/"):
+            self.current_cwd = lines[-1]
+            output = "\n".join(lines[:-1])  # 去掉 pwd 输出
+
+        result = (output + err).strip() or "(无输出)"
+        return ToolResult(data=result, error=proc.returncode != 0)
 
 
-# ── Agentic Loop ──────────────────────────────────────────────
+# ── API 重试 ──────────────────────────────────────────────────
 client = AsyncOpenAI(
     api_key=os.environ["ZHIPUAI_API_KEY"],
     base_url="https://open.bigmodel.cn/api/paas/v4/",
 )
+
+
+async def _create_stream_with_retry(client, **kwargs):
+    for attempt in range(3):
+        try:
+            return await client.chat.completions.create(**kwargs)
+        except APIError as e:
+            if attempt == 2 or e.status_code in (400, 401, 403):
+                raise
+            await asyncio.sleep(2 ** attempt)
+    raise RuntimeError("unreachable")
+
+
 TOOLS = [BashTool()]
 
 
-async def query(messages: list, system_prompt: str, cwd: str, max_turns: int = 10):
-    api_messages = ([{"role": "system", "content": system_prompt}] if system_prompt else []) + messages
+async def query(messages: list, cwd: str, max_turns: int = 10):
     turn = 0
     while turn < max_turns:
-        stream = await client.chat.completions.create(
-            model="glm-5.1", messages=api_messages,
+        stream = await _create_stream_with_retry(
+            client, model="glm-5.1", messages=messages,
             tools=[t.to_api_schema() for t in TOOLS], stream=True,
         )
         full_text = ""
@@ -128,7 +132,6 @@ async def query(messages: list, system_prompt: str, cwd: str, max_turns: int = 1
                 for tc in tool_calls_raw.values()
             ]
         messages.append(assistant_msg)
-        api_messages.append(assistant_msg)
         if not tool_calls_raw:
             return
         turn += 1
@@ -137,38 +140,25 @@ async def query(messages: list, system_prompt: str, cwd: str, max_turns: int = 1
             tool = next((t for t in TOOLS if t.name == tc["name"]), None)
             result = await tool.call(args, cwd) if tool else ToolResult(data="未知工具", error=True)
             yield f"\n[{tc['name']}]: {result.data[:300]}\n"
-            tool_msg = {"role": "tool", "tool_call_id": tc["id"], "content": result.data}
-            messages.append(tool_msg)
-            api_messages.append(tool_msg)
+            messages.append({"role": "tool", "tool_call_id": tc["id"], "content": result.data})
 
     yield f"\n[已达到最大轮数 {max_turns}]\n"
 
 
 async def main():
     cwd = os.getcwd()
-    resume = "--resume" in sys.argv
-
-    messages = load_session() if resume else []
-    if resume:
-        print(f"[已恢复会话，共 {len(messages)} 条消息]")
-
-    claude_md = load_claude_md(cwd)
-    system_prompt = claude_md if claude_md else ""
-    if claude_md:
-        print(f"[已加载 CLAUDE.md]\n")
-
-    print("记忆系统演示（输入 /quit 退出）\n")
+    messages = []
+    print("健壮性演示（超时+重试+cwd追踪）")
+    print("试试：「cd /tmp 然后列出文件」或「执行 sleep 60」\n")
     while True:
         user_input = input("你: ").strip()
         if user_input == "/quit":
-            save_session(messages)
-            print("[会话已保存]")
             break
         if not user_input:
             continue
         messages.append({"role": "user", "content": user_input})
         print("AI: ", end="")
-        async for text in query(messages, system_prompt, cwd):
+        async for text in query(messages, cwd):
             print(text, end="", flush=True)
         print()
 

@@ -48,6 +48,35 @@ async for text in query(...):
     print(text, end="")
 ```
 
+## 流式 tool_calls 拼接（重要细节）
+
+LLM 流式输出时，一个工具调用的参数可能**分多个 chunk 到达**：
+
+```
+chunk 1: {id: "call_1", name: "echo", arguments: "{\"mes"}
+chunk 2: {arguments: "sage\": \"hello\"}"}
+chunk 3: {arguments: ""}   ← 结束
+```
+
+所以我们用一个字典收集，用 `+=` 拼接 arguments：
+
+```python
+tool_calls_raw: dict[int, dict] = {}  # index → {id, name, arguments}
+
+for tc in delta.tool_calls:
+    idx = tc.index
+    if idx not in tool_calls_raw:
+        tool_calls_raw[idx] = {"id": "", "name": "", "arguments": ""}
+    if tc.function.name:
+        tool_calls_raw[idx]["name"] = tc.function.name   # 用 =，名字只来一次
+    if tc.function.arguments:
+        tool_calls_raw[idx]["arguments"] += tc.function.arguments  # 用 +=，拼接！
+
+# 流结束后，从收集字典里取完整参数，再 json.loads() 解析
+for collected in tool_calls_raw.values():
+    args = json.loads(collected["arguments"])
+```
+
 ## 运行
 
 ```bash
@@ -55,6 +84,28 @@ python3 main.py
 # 试着问："帮我 echo 一下 hello world"
 ```
 
+## 架构思考：为什么 query() 是 async generator？
+
+普通函数必须等所有工具执行完才能返回，用户看到的是"等待 → 一次性输出"。
+
+async generator 用 `yield` 边执行边输出，实现：
+- 流式文字实时打印（用户看到逐字输出）
+- 工具调用结果立即显示（不用等后续工具）
+- 用户感知到 agent 在"思考和行动"，而不是黑盒等待
+
+这是 agent 体验和批处理脚本的本质区别。
+
 ## 作业
 
-把 `max_turns=5` 改成 `max_turns=2`，观察超出限制时的提示。
+在 `async for chunk in stream` 循环里，加几行打印：
+
+```python
+if delta.tool_calls:
+    for tc in delta.tool_calls:
+        print(f"  chunk: index={tc.index}, name={tc.function.name!r}, args_fragment={tc.function.arguments!r}")
+```
+
+然后问 agent "帮我 echo hello"，观察：
+- `name` 只在第一个 chunk 出现，后续是 `None`
+- `arguments` 分多个 chunk 到达，每次是 JSON 的一个片段
+- 理解为什么 `name` 用 `=`，`arguments` 用 `+=`

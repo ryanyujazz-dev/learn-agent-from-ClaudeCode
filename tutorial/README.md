@@ -1,4 +1,4 @@
-# Mini-Claude 从零到一：10节课构建你自己的 AI Agent
+# Mini-Claude 从零到一：12节课构建你自己的 AI Agent
 
 ## 目标学员
 
@@ -15,13 +15,15 @@
 | 1 | `01-api-first-call` | openai SDK | 10行代码问 GLM 一个问题 |
 | 2 | `02-streaming` | stream=True | 逐字打印，像真正的 AI |
 | 3 | `03-multi-turn` | messages 列表 | 多轮对话，LLM 记住上下文 |
-| 4 | `04-async-intro` | async/await | 异步版多轮对话 |
+| 4 | `04-async-intro` | async/await | 异步版多轮对话 + 并发演示 |
 | 5 | `05-tool-design` | ABC 抽象类 | 定义统一的工具接口 |
 | 6 | `06-agentic-loop` | while + tool dispatch | 完整 agentic loop |
 | 7 | `07-real-tools` | subprocess + 文件读写 | 让 agent 真正执行命令 |
-| 8 | `08-permission` | 正则 + 持久化规则 | 危险命令被拦截 |
-| 9 | `09-memory` | CLAUDE.md + JSON 会话 | 跨会话记住项目信息 |
-| 10 | `10-full-repl` | readline + sys.argv | 完整 mini-claude REPL |
+| 8 | `08-robustness` | 超时+重试+cwd追踪 | 生产级健壮性工程 |
+| 9 | `09-permission` | 正则 + 持久化规则 | 危险命令被拦截 |
+| 10 | `10-memory` | CLAUDE.md + JSON 会话 | 跨会话记住项目信息 |
+| 11 | `11-full-repl` | ToolUseContext + is_error | 完整 mini-claude REPL |
+| 12 | `12-rich-status` | 事件协议 + rich spinner | 实时展示 agent 状态 |
 
 ## 运行方式
 
@@ -33,6 +35,10 @@ export ZHIPUAI_API_KEY="你的key"
 cd tutorial/01-api-first-call
 python3 main.py
 ```
+
+## 进阶阅读
+
+完成11节课后，阅读 [architecture.md](./architecture.md) — 系统讲解每个架构决策背后的"为什么"。
 
 ## 学习建议
 

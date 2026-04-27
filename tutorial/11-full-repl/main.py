@@ -1,6 +1,6 @@
 """
-Lesson 10: 完整 REPL
-新概念: readline, sys.argv, KeyboardInterrupt, 模块整合
+Lesson 11: 完整 REPL
+新概念: ToolUseContext 依赖注入, is_error 信号, readline
 """
 import os
 import sys
@@ -100,13 +100,21 @@ class ToolResult:
     error: bool = False
 
 
+@dataclass
+class ToolUseContext:
+    """依赖注入容器：把工具调用所需的上下文打包传递，而不是散落在各函数签名里。"""
+    tools: list
+    cwd: str = ""
+    permission_mode: str = "default"  # default | auto
+
+
 class Tool(ABC):
     name: str = ""
     description_text: str = ""
     input_schema: dict = {}
 
     @abstractmethod
-    async def call(self, args: dict, cwd: str, auto: bool) -> ToolResult: ...
+    async def call(self, args: dict, context: "ToolUseContext") -> ToolResult: ...
 
     def to_api_schema(self) -> dict:
         return {"type": "function", "function": {
@@ -123,12 +131,13 @@ class BashTool(Tool):
                     "properties": {"command": {"type": "string"}},
                     "required": ["command"]}
 
-    async def call(self, args: dict, cwd: str, auto: bool) -> ToolResult:
+    async def call(self, args: dict, context: "ToolUseContext") -> ToolResult:
         cmd = args["command"]
+        auto = context.permission_mode == "auto"
         if not check_permissions(self.name, cmd, auto):
             return ToolResult(data="权限被拒绝", error=True)
         proc = await asyncio.create_subprocess_shell(
-            cmd, cwd=cwd,
+            cmd, cwd=context.cwd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -143,9 +152,9 @@ class FileReadTool(Tool):
                     "properties": {"path": {"type": "string"}},
                     "required": ["path"]}
 
-    async def call(self, args: dict, cwd: str, auto: bool) -> ToolResult:
+    async def call(self, args: dict, context: "ToolUseContext") -> ToolResult:
         real = os.path.realpath(args["path"])
-        if not real.startswith(os.path.realpath(cwd)):
+        if not real.startswith(os.path.realpath(context.cwd)):
             return ToolResult(data="路径越界", error=True)
         try:
             return ToolResult(data=open(real, encoding="utf-8").read())
@@ -160,10 +169,11 @@ class FileWriteTool(Tool):
                     "properties": {"path": {"type": "string"}, "content": {"type": "string"}},
                     "required": ["path", "content"]}
 
-    async def call(self, args: dict, cwd: str, auto: bool) -> ToolResult:
+    async def call(self, args: dict, context: "ToolUseContext") -> ToolResult:
         real = os.path.realpath(args["path"])
-        if not real.startswith(os.path.realpath(cwd)):
+        if not real.startswith(os.path.realpath(context.cwd)):
             return ToolResult(data="路径越界", error=True)
+        auto = context.permission_mode == "auto"
         if not check_permissions(self.name, args["path"], auto):
             return ToolResult(data="权限被拒绝", error=True)
         try:
@@ -183,13 +193,13 @@ client = AsyncOpenAI(
 TOOLS = [BashTool(), FileReadTool(), FileWriteTool()]
 
 
-async def query(messages: list, system_prompt: str, cwd: str, auto: bool, max_turns: int = 20):
+async def query(messages: list, system_prompt: str, context: "ToolUseContext", max_turns: int = 20):
     api_messages = ([{"role": "system", "content": system_prompt}] if system_prompt else []) + messages
     turn = 0
     while turn < max_turns:
         stream = await client.chat.completions.create(
             model="glm-5.1", messages=api_messages,
-            tools=[t.to_api_schema() for t in TOOLS], stream=True,
+            tools=[t.to_api_schema() for t in context.tools], stream=True,
         )
         full_text = ""
         tool_calls_raw: dict[int, dict] = {}
@@ -227,10 +237,15 @@ async def query(messages: list, system_prompt: str, cwd: str, auto: bool, max_tu
         turn += 1
         for tc in tool_calls_raw.values():
             args = json.loads(tc["arguments"] or "{}")
-            tool = next((t for t in TOOLS if t.name == tc["name"]), None)
-            result = await tool.call(args, cwd, auto) if tool else ToolResult(data="未知工具", error=True)
+            tool = next((t for t in context.tools if t.name == tc["name"]), None)
+            result = await tool.call(args, context) if tool else ToolResult(data="未知工具", error=True)
             yield f"\n[{tc['name']}]: {result.data[:500]}\n"
-            tool_msg = {"role": "tool", "tool_call_id": tc["id"], "content": result.data}
+            tool_msg = {
+                "role": "tool",
+                "tool_call_id": tc["id"],
+                "content": result.data,
+                **({"is_error": True} if result.error else {}),
+            }
             messages.append(tool_msg)
             api_messages.append(tool_msg)
 
@@ -250,6 +265,12 @@ async def main():
     claude_md = load_claude_md(cwd)
     if claude_md:
         print("[已加载 CLAUDE.md]")
+
+    context = ToolUseContext(
+        tools=[BashTool(), FileReadTool(), FileWriteTool()],
+        cwd=cwd,
+        permission_mode="auto" if auto else "default",
+    )
 
     mode = "自动" if auto else "交互"
     print(f"mini-claude（工作目录: {cwd}，权限模式: {mode}）")
@@ -276,9 +297,10 @@ async def main():
 
         messages.append({"role": "user", "content": user_input})
         print("AI: ", end="")
-        async for text in query(messages, claude_md, cwd, auto):
+        async for text in query(messages, claude_md, context):
             print(text, end="", flush=True)
         print()
+        save_session(messages)
 
 
 asyncio.run(main())
