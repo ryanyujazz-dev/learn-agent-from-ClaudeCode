@@ -1,6 +1,6 @@
 # mini-claude
 
-一个用 Python 从零手写的 AI Agent，复刻了 claude-code 的核心架构。
+一个用 Python 从零开始学习搭建 AI Coding Agent的教程，复刻了 claude-code 的核心架构。
 
 这个项目有两个部分：一个**可以真正运行的 mini-claude**，以及一套**12节课的教程**，带你一步步理解它是怎么做出来的。
 
