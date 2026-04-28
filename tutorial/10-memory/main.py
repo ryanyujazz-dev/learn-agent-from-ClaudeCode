@@ -1,5 +1,5 @@
 """
-Lesson 9: 记忆系统
+Lesson 10: 记忆系统
 新概念: CLAUDE.md 注入, 向上遍历目录, messages JSON 持久化, --resume
 """
 import os

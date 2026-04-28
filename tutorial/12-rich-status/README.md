@@ -142,6 +142,17 @@ async for chunk in query(...):
 
 ---
 
+## 本课相对上一课的变更
+
+| 新增内容 | 位置 |
+|---------|------|
+| `\x00TOOL:` / `\x00DONE:` 事件协议 yield | `query()` 工具调用前后 |
+| `_tool_summary()` 生成工具摘要 | 新增函数 |
+| `rich.Status` spinner 手动 start/stop | `main()` async for 循环 |
+| `console = Console()` 替换 `print()` | 全局 |
+
+第 11 课的 `ToolUseContext`、`is_error`、权限系统**原样保留，无改动**。
+
 ## 运行
 
 ```bash

@@ -46,6 +46,18 @@ python3 main.py
 # 试着说：「列出当前目录」→ 询问权限，输入 a 永久允许
 ```
 
+## 本课相对上一课的变更
+
+| 新增内容 | 位置 |
+|---------|------|
+| `check_permissions()` 三步检查函数 | 新增函数 |
+| `_load_rules()` / `_save_rules()` 持久化规则 | 新增函数 |
+| `_DANGEROUS` 危险命令正则列表 | 文件顶部 |
+| `FileReadTool` 加入路径越界检测 | `FileReadTool.call()` |
+| `BashTool.call()` 调用权限检查 | `BashTool.call()` |
+
+第 8 课的超时、重试、cwd 追踪**原样保留，无改动**。
+
 ## 作业
 
 在 `_DANGEROUS` 列表里添加一条新规则，拦截 `shutdown` 命令。

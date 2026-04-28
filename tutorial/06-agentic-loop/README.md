@@ -95,6 +95,17 @@ async generator 用 `yield` 边执行边输出，实现：
 
 这是 agent 体验和批处理脚本的本质区别。
 
+## 本课相对上一课的变更
+
+| 新增内容 | 位置 |
+|---------|------|
+| `query()` async generator，含 while 循环 | `query()` 函数 |
+| 流式 tool_calls 拼接逻辑 | `async for chunk in stream` 块 |
+| 工具执行 + tool 消息回喂 | `for tc in tool_calls_raw.values()` 块 |
+| `EchoTool` 演示工具 | 文件顶部 |
+
+第 1-5 课的代码（`Tool` ABC、`ToolResult`、`AsyncOpenAI` 客户端）原样保留，无改动。
+
 ## 作业
 
 在 `async for chunk in stream` 循环里，加几行打印：

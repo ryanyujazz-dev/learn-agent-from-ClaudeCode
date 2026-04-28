@@ -84,6 +84,19 @@ call(args, context)  # 永远是这个签名
 
 这是**依赖注入**模式的核心价值：把"变化的部分"封装进容器，稳定接口。
 
+## 本课相对上一课的变更
+
+| 新增内容 | 位置 |
+|---------|------|
+| `ToolUseContext` dataclass，打包 cwd + permission_mode + tools | 新增类 |
+| 所有工具签名改为 `call(args, context)` | 各工具 `call()` |
+| tool 消息加入 `is_error: True` 标记 | `query()` tool_msg 构建 |
+| `import readline` 启用命令行历史 | 文件顶部 |
+| `/clear` 命令清空对话 | `main()` |
+| `--auto` 参数支持 | `main()` |
+
+第 10 课的记忆系统、权限系统**原样保留，无改动**。
+
 ## 作业
 
 对比本文件与项目根目录的 `main.py`，找出它们的相同点和不同点。

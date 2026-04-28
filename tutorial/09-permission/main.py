@@ -1,5 +1,5 @@
 """
-Lesson 8: 权限与安全
+Lesson 9: 权限与安全
 新概念: 正则检测危险命令, os.path.realpath 路径检测, JSON 持久化规则
 """
 import os

@@ -73,6 +73,18 @@ python3 main.py
 python3 main.py --resume
 ```
 
+## 本课相对上一课的变更
+
+| 新增内容 | 位置 |
+|---------|------|
+| `load_claude_md()` 向上遍历目录收集 CLAUDE.md | 新增函数 |
+| `save_session()` / `load_session()` JSON 持久化 | 新增函数 |
+| `query()` 新增 `system_prompt` 参数，分离 `api_messages` | `query()` 签名 |
+| `--resume` 命令行参数支持 | `main()` |
+| 每轮结束后自动 `save_session()` | `main()` while 循环 |
+
+第 9 课的权限系统**原样保留，无改动**。
+
 ## 作业
 
 在 `CLAUDE.md` 里写上你的项目说明，观察 agent 的回答是否有变化。

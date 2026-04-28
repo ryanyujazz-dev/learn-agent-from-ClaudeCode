@@ -2,7 +2,9 @@
 
 ## 本节新概念
 
-**asyncio.create_subprocess_shell**：异步执行 shell 命令，不阻塞事件循环。
+**主概念：asyncio.create_subprocess_shell** — 异步执行 shell 命令，不阻塞事件循环。
+
+**附带概念：is_read_only()** — 工具的只读标记，为 Lesson 9 的权限系统做铺垫。现在只是定义，还不生效。
 
 ## 为什么用异步 subprocess？
 
@@ -60,6 +62,16 @@ def is_read_only(self, args: dict) -> bool:
 python3 main.py
 # 试着说：「列出当前目录的文件」或「读取 /etc/hostname」
 ```
+
+## 本课相对上一课的变更
+
+| 新增内容 | 位置 |
+|---------|------|
+| `BashTool`：用 `asyncio.create_subprocess_shell` 执行真实命令 | `BashTool.call()` |
+| `FileReadTool`：读取文件，`is_read_only()` 返回 `True` | `FileReadTool` 类 |
+| `EchoTool` 替换为真实工具 | `TOOLS` 列表 |
+
+第 6 课的 `query()` agentic loop 逻辑**原样保留，无改动**。
 
 ## 作业
 

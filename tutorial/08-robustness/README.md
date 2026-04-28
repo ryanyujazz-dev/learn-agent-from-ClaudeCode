@@ -68,6 +68,17 @@ python3 main.py
 
 这三个问题的共同特点：**功能测试通过，但生产环境必然暴露**。健壮性工程就是提前堵住这些洞。
 
+## 本课相对上一课的变更
+
+| 新增内容 | 位置 |
+|---------|------|
+| `asyncio.wait_for` 超时保护（30秒） | `BashTool.call()` |
+| `_create_stream_with_retry` 指数退避重试 | 新增函数 |
+| `BashTool.__init__` + `current_cwd` 追踪 cd | `BashTool` 类 |
+| 命令末尾追加 `\npwd`，从输出读取新目录 | `BashTool.call()` |
+
+第 7 课的 `query()` 和工具基类**原样保留，无改动**。
+
 ## 作业
 
 把超时时间改成 5 秒，执行 `sleep 3`（应成功）和 `sleep 10`（应超时），观察区别。
