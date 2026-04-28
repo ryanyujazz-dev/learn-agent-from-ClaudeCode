@@ -38,8 +38,8 @@ agent 启动时，向上遍历目录，找到 `CLAUDE.md` 文件，注入到 sys
 把 `messages` 列表序列化成 JSON，下次启动时用 `--resume` 恢复：
 
 ```bash
-python3 main.py           # 新会话
-python3 main.py --resume  # 恢复上次会话
+python3 01_memory_agent.py           # 新会话
+python3 01_memory_agent.py --resume  # 恢复上次会话
 ```
 
 ## 核心代码
@@ -67,10 +67,10 @@ def load_claude_md(start_dir: str) -> str:
 echo "这是一个教程项目，用于学习 mini-claude。" > CLAUDE.md
 
 # 2. 运行 agent，它会读到 CLAUDE.md
-python3 main.py
+python3 01_memory_agent.py
 
 # 3. 退出后恢复会话
-python3 main.py --resume
+python3 01_memory_agent.py --resume
 ```
 
 ## 本课相对上一课的变更
@@ -83,7 +83,7 @@ python3 main.py --resume
 | `--resume` 命令行参数支持 | `main()` |
 | 每轮结束后自动 `save_session()` | `main()` while 循环 |
 
-第 9 课的权限系统**原样保留，无改动**。
+> **注意**：为聚焦记忆概念，本课仅保留 `BashTool`，未包含第 8-9 课的超时、重试、cwd 追踪和权限系统。所有功能会在第 11-12 课合齐。
 
 ## 作业
 
@@ -113,3 +113,44 @@ save_session(messages)  # 每轮结束后立即保存
 
 只在 `/quit` 时保存的问题：用户按 Ctrl+C 时，整轮对话丢失。
 每轮保存确保任何退出方式都不丢数据。
+
+## 进阶思考：记忆压缩
+
+### 问题：messages 会无限增长
+
+`messages` 列表每轮都在追加，对话越长，发给 API 的数据越大。超过模型的 **context window**（token 上限），API 就会报错。
+
+三种压缩策略：
+
+| 策略 | 做法 | 优点 | 缺点 |
+|------|------|------|------|
+| **截断** | 只保留最近 N 条 | 最简单 | 直接丢失早期记忆 |
+| **摘要压缩** | 用 LLM 总结历史，用摘要替代原文 | 保留关键信息 | 需要额外 API 调用 |
+| **滑动窗口** | 保留 system + 最近 K 轮 | 平衡简单与效果 | 早期细节会丢失 |
+
+### 运行滑动窗口示例
+
+```bash
+python3 02_sliding_window.py
+```
+
+与 `01_memory_agent.py` 的区别：
+
+```python
+# 滑动窗口：超过阈值时，保留 system prompt + 最近 20 条消息
+if len(api_messages) > MAX_MESSAGES + 1:
+    system = [api_messages[0]]
+    return system + api_messages[-MAX_MESSAGES:]
+```
+
+试着连续对话 10 轮以上，观察：
+- `messages` 列表持续增长（完整历史被保存）
+- 发给 API 的消息数被控制在 20 条以内（滑动窗口裁剪）
+- AI 仍然能正常对话，但记不住 10 轮之前的细节
+
+| | `01_memory_agent.py` | `02_sliding_window.py` |
+|---|---------------------|----------------------|
+| messages 增长 | 无限增长 | 完整保存，但发送时裁剪 |
+| 超长对话 | 会报错（超 context window） | 安全（窗口保护） |
+| 早期记忆 | 完整保留 | 被裁剪丢弃 |
+

@@ -15,7 +15,7 @@ except ImportError:
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from openai import AsyncOpenAI, APIError
+from openai import AsyncOpenAI
 from rich.console import Console
 from rich.status import Status
 

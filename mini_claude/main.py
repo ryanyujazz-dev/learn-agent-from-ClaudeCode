@@ -171,7 +171,9 @@ async def _run_query_interruptible(messages: list[dict], system_prompt: str, con
 
 async def repl(resume: bool = False, auto: bool = False):
     cwd = os.getcwd()
-    system_prompt = load_claudemd(cwd)
+    base_prompt = "你是 mini-claude，一个 AI 编程助手。"
+    claudemd = load_claudemd(cwd)
+    system_prompt = (base_prompt + "\n\n" + claudemd) if claudemd else base_prompt
     messages = load_latest_session() if resume else []
 
     permission_mode = "bypass" if auto else "default"

@@ -80,7 +80,7 @@ for collected in tool_calls_raw.values():
 ## 运行
 
 ```bash
-python3 main.py
+python3 agentic_loop.py
 # 试着问："帮我 echo 一下 hello world"
 ```
 

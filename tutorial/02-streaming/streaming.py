@@ -10,9 +10,14 @@ client = OpenAI(
     base_url=os.environ.get("LLM_BASE_URL", "https://open.bigmodel.cn/api/paas/v4/"),
 )
 
+user_input = input(">>> ")
+
 stream = client.chat.completions.create(
     model=os.environ.get("LLM_MODEL", "glm-5.1"),
-    messages=[{"role": "user", "content": "用三句话介绍一下Python语言"}],
+    messages=[
+        {"role": "system", "content": "你是一个老练python程序员，经常为大伙儿解答python问题。"},  # 加入系统提示词
+        {"role": "user", "content": user_input}
+    ],
     stream=True,
 )
 

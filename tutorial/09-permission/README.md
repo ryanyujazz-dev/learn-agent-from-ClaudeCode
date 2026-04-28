@@ -41,7 +41,7 @@ if not real.startswith(os.path.realpath(cwd)):
 ## 运行
 
 ```bash
-python3 main.py
+python3 permission_agent.py
 # 试着说：「执行 rm -rf /」→ 被拦截
 # 试着说：「列出当前目录」→ 询问权限，输入 a 永久允许
 ```
@@ -56,7 +56,7 @@ python3 main.py
 | `FileReadTool` 加入路径越界检测 | `FileReadTool.call()` |
 | `BashTool.call()` 调用权限检查 | `BashTool.call()` |
 
-第 8 课的超时、重试、cwd 追踪**原样保留，无改动**。
+> **注意**：为聚焦权限概念，本课未包含第 8 课的超时、重试、cwd 追踪。所有功能会在第 11-12 课合齐。
 
 ## 作业
 

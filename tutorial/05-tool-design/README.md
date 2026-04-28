@@ -52,7 +52,7 @@ input_schema = {
 ## 运行
 
 ```bash
-python3 main.py
+python3 tool_design.py
 ```
 
 ## 作业

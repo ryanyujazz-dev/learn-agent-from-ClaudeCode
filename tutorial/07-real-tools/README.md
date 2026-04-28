@@ -59,7 +59,7 @@ def is_read_only(self, args: dict) -> bool:
 ## 运行
 
 ```bash
-python3 main.py
+python3 real_tools.py
 # 试着说：「列出当前目录的文件」或「读取 /etc/hostname」
 ```
 

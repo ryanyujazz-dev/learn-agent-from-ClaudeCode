@@ -1,5 +1,7 @@
 # Mini-Claude 从零到一：12节课构建你自己的 AI Agent
 
+> **新手入门？** 先读 [GUIDE.md](./GUIDE.md) — 环境配置、学习路线、常见问题一网打尽。
+
 ## 目标学员
 
 只懂 Python 基础语法（变量、函数、类、for 循环），没有 async/await、API 调用、agent 经验。
@@ -41,7 +43,7 @@ python3 main.py
 
 ## 进阶阅读
 
-完成11节课后，阅读 [architecture.md](./architecture.md) — 系统讲解每个架构决策背后的"为什么"。
+完成12节课后，阅读 [architecture.md](./architecture.md) — 系统讲解每个架构决策背后的"为什么"。
 
 ## 学习建议
 

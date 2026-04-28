@@ -10,7 +10,11 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from openai import AsyncOpenAI
 
-SESSION_FILE = os.path.join(os.path.dirname(__file__), "latest.json")
+# ── 会话文件路径 ──────────────────────────────────────────────
+# 用绝对路径定位文件，避免"从不同目录运行脚本"时路径跑偏。
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(SCRIPT_DIR, "data")
+SESSION_FILE = os.path.join(DATA_DIR, "latest.json")
 
 
 def load_claude_md(start_dir: str) -> str:
@@ -29,6 +33,7 @@ def load_claude_md(start_dir: str) -> str:
 
 
 def save_session(messages: list) -> None:
+    os.makedirs(DATA_DIR, exist_ok=True)
     with open(SESSION_FILE, "w", encoding="utf-8") as f:
         json.dump(messages, f, ensure_ascii=False, indent=2)
 

@@ -53,7 +53,7 @@ new_cwd = lines[-1] if lines[-1].startswith("/") else cwd
 ## 运行
 
 ```bash
-python3 main.py
+python3 robust_agent.py
 # 试试：「cd /tmp 然后列出文件」→ 应在 /tmp 下列出
 # 试试：「执行 sleep 60」→ 30秒后超时
 ```
@@ -77,7 +77,7 @@ python3 main.py
 | `BashTool.__init__` + `current_cwd` 追踪 cd | `BashTool` 类 |
 | 命令末尾追加 `\npwd`，从输出读取新目录 | `BashTool.call()` |
 
-第 7 课的 `query()` 和工具基类**原样保留，无改动**。
+第 7 课的 `query()` 和 `Tool` 基类保留，但 `Tool.call()` 签名从 `(args)` 改为 `(args, cwd)` 以支持目录追踪。
 
 ## 作业
 

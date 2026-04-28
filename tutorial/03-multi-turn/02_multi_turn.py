@@ -10,22 +10,29 @@ client = OpenAI(
     base_url=os.environ.get("LLM_BASE_URL", "https://open.bigmodel.cn/api/paas/v4/"),
 )
 
+SYSTEM_PROMPT = """
+你是一个python学习助手，你需要帮助用户解决各种问题。
+"""
+
+# 对话容器，缓存聊天记录
 messages = []
 
 print("多轮对话（输入 /quit 退出）")
 while True:
-    user_input = input("你: ").strip()
+    user_input = input(">>> ").strip()
     if user_input == "/quit":
         break
     if not user_input:
         continue
 
     messages.append({"role": "user", "content": user_input})
+    system_message = {"role": "system", "content": SYSTEM_PROMPT}
+    api_messages = [system_message] + messages
 
     stream = client.chat.completions.create(
-        model=os.environ.get("LLM_MODEL", "glm-5.1"),
-        messages=messages,
-        stream=True,
+        model = os.environ.get("LLM_MODEL", "glm-5.1"),
+        messages = api_messages,
+        stream = True,
     )
 
     print("AI: ", end="")

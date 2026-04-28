@@ -6,10 +6,10 @@
 
 ---
 
-## 问题：query() 内部发生的事，main.py 看不见
+## 问题：query() 内部发生的事，rich_agent.py 看不见
 
-`query()` 是 async generator，它 yield 文字给 `main.py` 打印。
-但工具执行发生在 `query()` 内部——`main.py` 不知道"现在在执行哪个工具"。
+`query()` 是 async generator，它 yield 文字给 `rich_agent.py` 打印。
+但工具执行发生在 `query()` 内部——`rich_agent.py` 不知道"现在在执行哪个工具"。
 
 工具执行期间，用户看到的是空白等待：
 
@@ -33,7 +33,7 @@ file2.py
 ```
 
 用 `\x00`（null byte，不可见字符）作为前缀标记事件。
-`main.py` 收到 chunk 时，检查前缀决定如何处理：
+`rich_agent.py` 收到 chunk 时，检查前缀决定如何处理：
 
 ```python
 async for chunk in query(...):
@@ -119,7 +119,7 @@ async for chunk in query(...):
 ## 架构思考：展示层与逻辑层分离
 
 `query()` 只负责产生事件，不关心如何展示。
-`main.py` 决定如何展示（spinner、颜色、格式）。
+`rich_agent.py` 决定如何展示（spinner、颜色、格式）。
 
 好处：未来可以换成 Web UI、写入日志文件，`query()` 完全不需要改：
 
@@ -157,7 +157,7 @@ async for chunk in query(...):
 
 ```bash
 pip install rich
-python3 main.py
+python3 rich_agent.py
 # 输入「列出当前目录的文件」
 # 应看到：⠋ bash(ls) → ✓ bash(ls)
 ```
