@@ -92,9 +92,9 @@ class EchoTool(Tool):
 
 # ── Agentic Loop ──────────────────────────────────────────────
 #
-# 和第 5 课 File 3 的区别：
-#   第 5 课：LLM 调工具 → 我们执行 → 打印结果 → 结束
-#   本课：  LLM 调工具 → 我们执行 → 结果回喂给 LLM → LLM 继续回复
+# 和第5课 File 3 的区别：
+# 第5课：LLM 调工具 → 我们执行 → 打印结果 → 结束
+# 本课： LLM 调工具 → 我们执行 → 结果回喂给 LLM → LLM 继续回复
 #
 # 多了"回喂"这一步，LLM 就能基于工具结果生成自然的回复。
 # 用 while 循环包起来，LLM 可以连续调用多个工具。
@@ -132,6 +132,13 @@ async def chat(messages: list[dict], max_turns: int = 5):
         # ── 第 2 步：LLM 回复里有文字吗？先加入 messages ──
         # LLM 可能在调工具前说一句话（比如"让我查一下"）
         # 这句话也要加入 messages，保持对话完整
+        #
+        # 注意：即使 message.content 为空（LLM 直接调工具，没说话），
+        # 也必须 append！因为 API 要求 messages 的顺序是严格的：
+        #   assistant（带 tool_calls）→ tool（带 tool_call_id）
+        # 如果跳过这条 assistant 消息，后面的 tool 消息就接不上，
+        # API 会报错："messages with role 'tool' must be a response
+        # to a preceding message with 'tool_calls'"
         messages.append({
             "role": "assistant",
             "content": message.content,
@@ -151,14 +158,20 @@ async def chat(messages: list[dict], max_turns: int = 5):
         #   本课：  把结果以 role="tool" 消息加入 messages → LLM 下一轮能看到
         for tc in message.tool_calls:
             args = json.loads(tc.function.arguments)
-            print(f"  [调用工具: {tc.function.name}({args})]")
+            print(f"  正在调用工具: {tc.function.name}({args})")
 
-            # 找到工具并执行
-            tool = next((t for t in TOOLS if t.name == tc.function.name), None)
+            # 在 TOOLS 列表里按名字找到对应的工具实例
+            tool = None
+            for t in TOOLS:
+                if t.name == tc.function.name:
+                    tool = t
+                    break
+            # 等价的惯用写法（更紧凑但不够直观）：
+            # tool = next((t for t in TOOLS if t.name == tc.function.name), None)
             if tool:
                 result: ToolResult = await tool.call(args)
             else:
-                result = ToolResult(data="未知工具", error=True)
+                result = ToolResult(data="未知工具", error=True)  # error 字段目前未使用，第 11 课会用 is_error 通知 LLM
 
             print(f"  [结果: {result.data}]")
 

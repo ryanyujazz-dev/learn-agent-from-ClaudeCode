@@ -62,7 +62,9 @@ while turn < max_turns:
     )
     message = response.choices[0].message
 
-    # 2. 把 assistant 回复加入 messages
+    # 2. 把 assistant 回复加入 messages（即使 content 为空也必须加）
+    #    因为 API 要求：assistant（带 tool_calls）→ tool（带 tool_call_id）
+    #    跳过 assistant 消息会导致 tool 消息接不上，API 报错
     messages.append({"role": "assistant", "content": message.content})
 
     # 3. 没有工具调用 → 结束
@@ -80,6 +82,25 @@ while turn < max_turns:
 
     # 回到 while 开头，LLM 看到工具结果后继续
 ```
+
+### 为什么 `message.content` 为空也要 append？
+
+当 LLM 决定调用工具时，`content` 可能是 `None` 或空字符串——模型直接调工具，不说话。但这条 assistant 消息**仍然必须加入 messages**。
+
+原因是 API 对消息顺序有严格要求：
+
+```
+assistant（带 tool_calls）  ←  触发工具调用
+tool      （tool_call_id）  ←  对应的工具结果
+```
+
+`tool` 角色消息必须跟在带 `tool_calls` 的 `assistant` 消息后面。如果跳过 assistant 消息直接发 tool 消息，API 会报错：
+
+```
+messages with role 'tool' must be a response to a preceding message with 'tool_calls'
+```
+
+所以 `messages.append` 控制的是**记录对话历史**（必须），`if message.content: print()` 控制的是**给用户看**（只有有内容时才打印）。
 
 ### 为什么需要 `tool_call_id`？
 
