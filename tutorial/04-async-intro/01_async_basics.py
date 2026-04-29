@@ -32,13 +32,16 @@ print(f"总耗时: {time.time() - start:.1f} 秒")
 
 # ── 异步版本：两件事同时推进 ──────────────────────────────────
 # async def — 声明这个函数里有需要等待的地方
-# await — 标记等待的地点，切换去执行其他函数（不是傻等，是去干别的）
+# await — 告诉事件循环此处可以挂起，标记等待的地点，切换去执行其他函数（不是傻等，是去干别的），
+# 直到await的对象运行完毕，继续执行当前函数的逻辑
+
+# 表示async_cook() 函数由事件循环来管理调度
 async def async_cook():
     print("开始煮饭...")
     await asyncio.sleep(2)  # 等待 2 秒，但程序会切换去执行 async_soup
     print("饭好了！")
 
-
+# 表示async_soup() 函数由事件循环来管理调度
 async def async_soup():
     print("开始煲汤...")
     await asyncio.sleep(3)  # 等待 3 秒，程序会切换回来继续煮饭的逻辑
