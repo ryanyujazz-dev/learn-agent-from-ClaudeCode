@@ -248,7 +248,12 @@ async def query(messages: list, system_prompt: str, context: "ToolUseContext", m
 
         for tc in tool_calls_raw.values():
             args = json.loads(tc["arguments"] or "{}")
-            tool = next((t for t in context.tools if t.name == tc["name"]), None)
+            # 在工具列表里按名字找到对应的工具实例
+            tool = None
+            for t in context.tools:
+                if t.name == tc["name"]:
+                    tool = t
+                    break
 
             # 事件协议：yield \x00TOOL 事件，main.py 据此显示 spinner
             yield f"\x00TOOL:{tc['name']}:{json.dumps(args, ensure_ascii=False)}"

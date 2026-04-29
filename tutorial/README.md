@@ -23,7 +23,7 @@
 | 7 | `07-real-tools` | subprocess + 文件读写 | 让 agent 真正执行命令 |
 | 8 | `08-robustness` | 超时+重试+cwd追踪 | 生产级健壮性工程 |
 | 9 | `09-permission` | 正则 + 持久化规则 | 危险命令被拦截 |
-| 10 | `10-memory` | CLAUDE.md + RAG + Skills | 上下文工程：记忆、检索、行为指令 |
+| 10 | `10-context_engineering` | CLAUDE.md + RAG + Skills | 上下文工程：记忆、检索、行为指令 |
 | 11 | `11-full-repl` | ToolUseContext + is_error | 完整 mini-claude REPL |
 | 12 | `12-rich-status` | 事件协议 + rich spinner | 实时展示 agent 状态 |
 

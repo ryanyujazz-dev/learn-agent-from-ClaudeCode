@@ -147,7 +147,7 @@ Lesson 1 (API)
 | 7 | `07-real-tools` | subprocess + 文件读写 | 实现 FileWriteTool | 说"列出当前目录的文件" |
 | 8 | `08-robustness` | 超时 + 重试 + cwd 追踪 | 改超时为 5 秒测试 | 试"cd /tmp"和"sleep 60" |
 | 9 | `09-permission` | 正则拦截 + 持久化规则 | 加 shutdown 拦截规则 | 试"rm -rf /"被拦截 |
-| 10 | `10-memory` | CLAUDE.md + RAG + Skills | 写自定义 skill 文件 | File 3-4 需思考检索和指令注入 |
+| 10 | `10-context_engineering` | CLAUDE.md + RAG + Skills | 写自定义 skill 文件 | File 3-4 需思考检索和指令注入 |
 | 11 | `11-full-repl` | ToolUseContext + is_error | 对比根目录 main.py | 用 `--auto` 跳过权限 |
 | 12 | `12-rich-status` | 事件协议 + rich spinner | 改 `_tool_summary()` | 需安装 rich |
 
@@ -252,7 +252,7 @@ tutorial/
 ├── 09-permission/
 │   ├── README.md
 │   └── permission_agent.py
-├── 10-memory/
+├── 10-context_engineering/
 │   ├── README.md
 │   ├── 01_memory_agent.py
 │   ├── 02_sliding_window.py
