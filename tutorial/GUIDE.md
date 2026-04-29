@@ -70,7 +70,7 @@ python3 main.py
 基础篇（1-4课）         核心篇（5-8课）           工程篇（9-12课）
 ┌──────────────┐    ┌──────────────┐     ┌──────────────┐
 │ 1. API 调用   │    │ 5. 工具设计   │     │  9. 权限安全  │
-│ 2. 流式输出   │───→│ 6. Agentic   │───→ │ 10. 记忆系统  │
+│ 2. 流式输出   │───→│ 6. Agentic   │───→ │ 10. 上下文工程│
 │ 3. 多轮对话   │    │    Loop      │     │ 11. 完整 REPL │
 │ 4. async     │    │ 7. 真实工具   │     │ 12. 状态展示  │
 └──────────────┘    │ 8. 健壮性     │     └──────────────┘
@@ -147,7 +147,7 @@ Lesson 1 (API)
 | 7 | `07-real-tools` | subprocess + 文件读写 | 实现 FileWriteTool | 说"列出当前目录的文件" |
 | 8 | `08-robustness` | 超时 + 重试 + cwd 追踪 | 改超时为 5 秒测试 | 试"cd /tmp"和"sleep 60" |
 | 9 | `09-permission` | 正则拦截 + 持久化规则 | 加 shutdown 拦截规则 | 试"rm -rf /"被拦截 |
-| 10 | `10-memory` | CLAUDE.md + 会话持久化 | 写 CLAUDE.md 观察 agent 变化 | 用 `--resume` 恢复会话 |
+| 10 | `10-memory` | CLAUDE.md + RAG + Skills | 写自定义 skill 文件 | File 3-4 需思考检索和指令注入 |
 | 11 | `11-full-repl` | ToolUseContext + is_error | 对比根目录 main.py | 用 `--auto` 跳过权限 |
 | 12 | `12-rich-status` | 事件协议 + rich spinner | 改 `_tool_summary()` | 需安装 rich |
 
@@ -254,7 +254,13 @@ tutorial/
 │   └── permission_agent.py
 ├── 10-memory/
 │   ├── README.md
-│   └── memory_agent.py
+│   ├── 01_memory_agent.py
+│   ├── 02_sliding_window.py
+│   ├── 03_simple_rag.py
+│   ├── 04_skills.py
+│   └── skills/
+│       ├── code_review.md
+│       └── explain_code.md
 ├── 11-full-repl/
 │   ├── README.md
 │   └── full_repl.py
