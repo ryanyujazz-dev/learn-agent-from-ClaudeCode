@@ -15,7 +15,7 @@ except ImportError:
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, APIError
 from rich.console import Console
 from rich.status import Status
 
@@ -133,13 +133,33 @@ class BashTool(Tool):
         auto = context.permission_mode == "auto"
         if not check_permissions(self.name, cmd, auto):
             return ToolResult(data="权限被拒绝", error=True)
+
+        # 追加 pwd 以追踪 cd 后的新目录
+        full_cmd = cmd + "\npwd"
         proc = await asyncio.create_subprocess_shell(
-            cmd, cwd=context.cwd,
+            full_cmd, cwd=context.cwd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        stdout, stderr = await proc.communicate()
-        return ToolResult(data=(stdout.decode() + stderr.decode()).strip())
+
+        # 超时保护：30秒
+        try:
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=30)
+        except asyncio.TimeoutError:
+            proc.kill()
+            return ToolResult(data="命令超时（30秒）", error=True)
+
+        output = stdout.decode()
+        err = stderr.decode()
+
+        # 从最后一行读取新 cwd
+        lines = output.strip().splitlines()
+        if lines and lines[-1].startswith("/"):
+            context.cwd = lines[-1]
+            output = "\n".join(lines[:-1])
+
+        result = (output + err).strip() or "(无输出)"
+        return ToolResult(data=result, error=proc.returncode != 0)
 
 
 class FileReadTool(Tool):
@@ -203,12 +223,24 @@ client = AsyncOpenAI(
 )
 
 
+async def _create_stream_with_retry(client, **kwargs):
+    """指数退避重试：网络抖动时自动重试，客户端错误（4xx）不重试。"""
+    for attempt in range(3):
+        try:
+            return await client.chat.completions.create(**kwargs)
+        except APIError as e:
+            if attempt == 2 or e.status_code in (400, 401, 403):
+                raise
+            await asyncio.sleep(2 ** attempt)
+    raise RuntimeError("unreachable")
+
+
 async def query(messages: list, system_prompt: str, context: "ToolUseContext", max_turns: int = 20):
     api_messages = ([{"role": "system", "content": system_prompt}] if system_prompt else []) + messages
     turn = 0
     while turn < max_turns:
-        stream = await client.chat.completions.create(
-            model=os.environ.get("LLM_MODEL", "glm-5.1"), messages=api_messages,
+        stream = await _create_stream_with_retry(
+            client, model=os.environ.get("LLM_MODEL", "glm-5.1"), messages=api_messages,
             tools=[t.to_api_schema() for t in context.tools], stream=True,
         )
         full_text = ""
