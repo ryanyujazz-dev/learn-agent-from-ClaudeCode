@@ -1,5 +1,29 @@
 # Lesson 6 — Agentic Loop（核心）
 
+## 行业术语：Tool Calling 流程
+
+第 5 课定义了工具长什么样，本课实现完整的 Tool Calling 流程：
+
+```
+用户提问
+  ↓
+LLM 返回 tool_call（包含工具名 + 参数）   ← Tool Calling
+  ↓
+程序解析参数，找到对应工具并执行           ← Tool Dispatch
+  ↓
+工具结果回喂给 LLM                        ← Tool Result
+  ↓
+LLM 继续生成回复（可能再次调用工具）
+  ↓
+没有更多工具调用时，输出最终回复
+```
+
+| 术语 | 含义 | 本课对应 |
+|------|------|---------|
+| **Tool Calling** | LLM 返回 `tool_calls`，包含要调用的函数名和参数 | `delta.tool_calls` 解析 |
+| **Tool Dispatch** | 根据工具名找到对应的工具对象并执行 | `next((t for t in TOOLS if t.name == ...))` |
+| **Tool Result** | 工具执行结果，以 `role: "tool"` 消息回喂给 LLM | `messages.append({"role": "tool", ...})` |
+
 ## 本节新概念
 
 **Agentic Loop**：LLM 调用工具 → 工具返回结果 → LLM 继续 → 直到不再需要工具。
@@ -76,6 +100,41 @@ for tc in delta.tool_calls:
 for collected in tool_calls_raw.values():
     args = json.loads(collected["arguments"])
 ```
+
+## 一次 LLM 回复里有什么？
+
+你可能注意过 Claude Code 的输出：
+
+```
+⏺ 让我看看第5、6课现在怎么讲的。
+  Read 2 files (ctrl+o to expand)
+⏺ 第5、6课讲了工具设计和 agentic loop...
+```
+
+第一句话"让我看看"和后面的工具调用，来自**同一次 LLM 回复**。
+
+API 返回的 message 有两个字段：
+
+```python
+response.choices[0].message.content      # "让我看看第5、6课现在怎么讲的。"
+response.choices[0].message.tool_calls    # [Read(file="05..."), Read(file="06...")]
+```
+
+**文字和工具调用在同一次回复里。** 流式输出时，文字先到，工具调用紧跟其后：
+
+```
+chunk: content="让我"         ← 文字先出来
+chunk: content="看看"
+chunk: content="第5、6课..."
+chunk: content=None           ← 文字结束
+chunk: tool_calls=[Read(...)] ← 工具调用开始
+```
+
+所以用户看到的效果是：模型先说"让我查一下"，然后工具开始执行。这不是两步，而是一次回复里的两个部分。
+
+"让我看看"不是系统提示词写死的模板，而是模型自己生成的过渡句——就像一个人说"等我翻一下资料"然后去翻书。模型学会了先告诉用户自己的意图，再执行动作。
+
+这就是 agentic loop 的核心体验：用户能看到模型在"思考和行动"，而不是黑盒等待。
 
 ## 运行
 

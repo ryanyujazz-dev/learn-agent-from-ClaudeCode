@@ -1,5 +1,18 @@
 # Lesson 5 — 工具系统设计
 
+## 行业术语：Tool Calling
+
+本课涉及的概念在行业里有标准叫法：
+
+| 术语 | 含义 | 本课对应 |
+|------|------|---------|
+| **Tool Schema** | 用 JSON Schema 定义工具接受什么参数（告诉 LLM 怎么用） | `input_schema` |
+| **Tool Calling / Function Calling** | LLM 决定调用哪个函数、传什么参数 | 第 6 课讲 |
+| **Tool Dispatch** | 程序根据 LLM 返回的工具名，路由到对应的处理函数 | 第 6 课讲 |
+| **Tool Result** | 工具执行完的结果，回喂给 LLM | `ToolResult` |
+
+本课重点讲 **Tool Schema**（定义工具长什么样）和 **ToolResult**（工具返回什么）。第 6 课讲 Tool Calling 和 Tool Dispatch。
+
 ## 本节新概念
 
 **ABC 抽象基类**：定义一个"模板"，强制所有工具都实现相同的接口。
