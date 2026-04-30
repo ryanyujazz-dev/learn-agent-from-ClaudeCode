@@ -8,3 +8,4 @@ dist/
 .idea/
 tutorial/*/data/
 uv.lock
+CLAUDE.md
