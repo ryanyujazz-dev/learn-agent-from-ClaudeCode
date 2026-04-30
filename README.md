@@ -1,85 +1,104 @@
 # mini-claude
 
-一个用 Python 从零开始学习搭建 AI Coding Agent的教程，复刻了 claude-code 的核心架构。
+**12 节课，用 Python 从零构建一个 AI Coding Agent。**
 
-这个项目有两个部分：一个**可以真正运行的 mini-claude**，以及一套**12节课的教程**，带你一步步理解它是怎么做出来的。
+复刻 claude-code 的核心架构：Agentic Loop、Tool Calling、MCP、权限安全、记忆系统、Skills——每一层都用最少的代码讲清楚。
 
 ---
 
-## 为什么做这个？
+## 这个项目是什么
 
-claude-code 是目前最好用的 AI 编程助手之一，但它是 TypeScript 写的，源码对很多人来说有门槛。
+它有两个部分：
 
-这个项目的目标很简单：**用最少的 Python 代码，把 claude-code 的核心思想讲清楚**。
+- **一套 12 节课的教程**（`tutorial/`）——从 10 行代码的 API 调用，一步步构建到完整的 AI Agent
+- **一个可以运行的 mini-claude**（`mini_claude/`）——教程学完后，你能读懂这里的每一行
 
-不是玩具，是真的能用的东西——能执行 bash 命令、读写文件、记住上下文、拦截危险操作。代码量控制在可以一口气读完的范围内。
+不需要 async 经验、不需要 AI Agent 知识、不需要 TypeScript。只要会 Python 基础语法（变量、函数、类、for 循环），就能学。
+
+---
+
+## 课程大纲
+
+```
+基础篇（1-4课）         核心篇（5-8课）           工程篇（9-12课）
+┌──────────────┐    ┌──────────────┐     ┌──────────────┐
+│ 1. API 调用   │    │ 5. 工具设计   │     │  9. 权限安全  │
+│ 2. 流式输出   │───→│ 6. Agentic   │───→ │ 10. 上下文工程│
+│ 3. 多轮对话   │    │    Loop      │     │ 11. 完整 REPL │
+│ 4. async     │    │ 7. 真实工具   │     │ 12. 状态展示  │
+└──────────────┘    │ 8. 健壮性     │     └──────────────┘
+                    └──────────────┘
+```
+
+| # | 主题 | 你会学到 |
+|---|------|---------|
+| 1 | API 第一次调用 | openai SDK、环境变量 |
+| 2 | 流式输出 | stream=True、逐字打印 |
+| 3 | 多轮对话 | messages 列表、对话记忆 |
+| 4 | 异步编程 | async/await、并发请求 |
+| 5 | 工具设计 | Tool ABC、JSON Schema、**MCP 实战** |
+| 6 | Agentic Loop | while 循环、工具分发、结果回喂 |
+| 7 | 真实工具 | subprocess、文件读写 |
+| 8 | 健壮性 | 超时、重试、cwd 追踪 |
+| 9 | 权限安全 | 危险命令拦截、持久化规则 |
+| 10 | 上下文工程 | CLAUDE.md、**RAG**、**Skills**、滑动窗口 |
+| 11 | 完整 REPL | 依赖注入、is_error 信号、全功能合体 |
+| 12 | 状态展示 | 事件协议、rich spinner、展示层分离 |
+
+每节课都是独立可运行的单文件，只引入一个新概念。严格按顺序学习。
 
 ---
 
 ## 快速开始
 
-推荐把 mini-claude 安装成一个命令，然后在你想操作的项目目录里运行它。
-
-### 从 GitHub 安装
+### 学习教程
 
 ```bash
-# 推荐：作为独立 CLI 安装
-pipx install git+https://github.com/ryanyujazz-dev/learn-agent-from-ClaudeCode.git
+git clone https://github.com/ryanyujazz-dev/learn-agent-from-ClaudeCode.git
+cd learn-agent-from-ClaudeCode
 
-# 进入你真正想让 mini-claude 操作的项目
-cd /path/to/your-project
-mini-claude
+# 配置 API Key（支持任何 OpenAI 兼容接口）
+export LLM_API_KEY="你的key"
+# export LLM_BASE_URL="https://open.bigmodel.cn/api/paas/v4/"  # 可选
+# export LLM_MODEL="glm-5.1"                                    # 可选
+
+# 从第 1 课开始
+cd tutorial/01-api-first-call
+python3 01_hardcode.py
 ```
 
-### 本地开发安装
+详细的环境配置和学习指南见 [tutorial/GUIDE.md](./tutorial/GUIDE.md)。
+
+### 运行 mini-claude
 
 ```bash
-# 1. 克隆并进入 mini-claude 仓库
-git clone https://github.com/ryanyujazz-dev/learn-agent-from-ClaudeCode.git
-cd claude_code_ran
-
-# 2. 安装为本地可编辑命令
+# 安装
 pip install -e .
 
-# 3. 去你想操作的项目里运行
+# 在你想操作的项目目录里运行
 cd /path/to/your-project
 mini-claude
 
 # 恢复上次会话
 mini-claude --resume
-
-# 跳过所有权限确认
-mini-claude --auto
 ```
 
-首次运行时，程序会自动引导你输入 API 配置：
+首次运行时会引导你配置 API。
 
-```
-欢迎使用 mini-claude！首次运行需要配置 LLM 接口。
-API Base URL（回车使用默认 https://open.bigmodel.cn/api/paas/v4/）:
-API Key: sk-xxx
-模型名称（回车使用默认 glm-5.1）:
-配置已保存到 ~/.mini-claude/config.json
-```
+---
 
-配置保存在 `~/.mini-claude/config.json`，不在项目目录内，不会被提交到 git。支持任何 OpenAI 兼容接口（ZhipuAI、OpenAI、DeepSeek、Ollama 等）。
+## 课程里你会遇到哪些行业概念
 
-如果只是临时从源码目录运行，也可以继续使用：
+本课不只是写 Python 代码，还会遇到 AI Agent 领域的通用概念：
 
-```bash
-python main.py
-```
-
-运行后你会看到：
-
-```
-mini-claude (glm-5.1) — type 'exit' to quit
-
->>> 帮我列出当前目录的文件
-⠋ bash(ls -la)
-✓ bash(ls -la)
-当前目录包含以下文件：...
-```
+| 概念 | 在哪一课 | 一句话解释 |
+|------|---------|-----------|
+| Tool Calling | 第 5-6 课 | LLM 决定调哪个函数、传什么参数 |
+| Agentic Loop | 第 6 课 | while 循环：调工具 → 结果回喂 → 继续 |
+| MCP | 第 5 课 File 4 | 标准协议，让 agent 动态发现外部工具服务器 |
+| RAG | 第 10 课 | 先检索知识，再注入上下文让 LLM 回答 |
+| Skills | 第 10 课 | 操作手册，告诉模型按什么步骤完成任务 |
+| 依赖注入 | 第 11 课 | 把变化的部分封装进容器，稳定接口 |
 
 ---
 
@@ -99,75 +118,31 @@ mini-claude (glm-5.1) — type 'exit' to quit
 └─────────────────────────────────────┘
 ```
 
-| 文件/目录 | 职责 | 对应原版 |
-|-----------|------|---------|
-| `main.py` | 兼容入口，转发到 `mini_claude.main:cli` | `src/cli.ts` |
-| `setup.py` | Python 包配置，生成 `mini-claude` 命令 | - |
-| `mini_claude/main.py` | REPL 入口，rich spinner 状态展示 | `src/cli.ts` |
-| `mini_claude/query.py` | Agentic loop，流式输出，工具分发，重试 | `src/query.ts` |
-| `mini_claude/tool.py` | Tool ABC，ToolUseContext，权限检查 | `src/Tool.ts` |
-| `mini_claude/tools/` | BashTool, FileReadTool, FileWriteTool, GlobTool, GrepTool | `src/tools/` |
-| `mini_claude/memory/` | CLAUDE.md 注入，会话持久化 + 归档 | `src/memdir/` |
-| `mini_claude/security/` | 危险命令拦截，路径越界检测，持久化规则 | `src/tools/BashTool/bash*.ts` |
-
----
-
-## 内置工具
-
-| 工具 | 功能 |
-|------|------|
-| `bash` | 执行 shell 命令，追踪 cd 后的目录变化 |
-| `file_read` | 读取文件，路径越界检测 |
-| `file_write` | 写入文件，权限确认 |
-| `glob` | 文件模式匹配 |
-| `grep` | 内容搜索 |
-
----
-
-## 12节课教程
-
-如果你想理解这一切是怎么做出来的，`tutorial/` 目录有一套从零开始的课程：
-
-| # | 主题 | 新概念 |
-|---|------|--------|
-| 1 | API 第一次调用 | openai SDK |
-| 2 | 流式输出 | stream=True |
-| 3 | 多轮对话 | messages 列表 + 完整格式 |
-| 4 | 异步 | async/await + asyncio.gather |
-| 5 | 工具设计 | ABC 抽象类 |
-| 6 | Agentic Loop | while + tool dispatch |
-| 7 | 真实工具 | subprocess + 文件读写 |
-| 8 | 健壮性 | 超时 + 重试 + cwd 追踪 |
-| 9 | 权限安全 | 正则拦截 + 持久化规则 |
-| 10 | 记忆系统 | CLAUDE.md + 会话持久化 |
-| 11 | 完整 REPL | ToolUseContext + is_error |
-| 12 | 状态展示 | 事件协议 + rich spinner |
-
-每节课都是独立可运行的单文件，只引入一个新概念。
-
-完成12节课后，读 [`tutorial/architecture.md`](./tutorial/architecture.md)——它解释了每个架构决策背后的"为什么"，以及教程与根目录代码的差异对照表。
-
-```bash
-cd tutorial/01-api-first-call
-python3 main.py
-```
+完成 12 节课后，阅读 [tutorial/architecture.md](./tutorial/architecture.md) ——它解释了每个架构决策背后的"为什么"。
 
 ---
 
 ## LLM 后端
 
-默认使用 [ZhipuAI](https://open.bigmodel.cn/) GLM-5.1，通过 OpenAI 兼容接口调用。
+默认使用 [ZhipuAI](https://open.bigmodel.cn/) GLM-5.1。支持任何 OpenAI 兼容接口：
 
-申请 API Key：https://open.bigmodel.cn/
-
-如果你想换成 OpenAI、DeepSeek、Ollama 或其他兼容接口，首次运行时填写对应的 `base_url`、`api_key` 和 `model` 即可。配置会保存到 `~/.mini-claude/config.json`。
+| 平台 | 申请地址 | 备注 |
+|------|---------|------|
+| 智谱 AI | https://open.bigmodel.cn/ | 默认配置 |
+| DeepSeek | https://platform.deepseek.com/ | 改 `LLM_BASE_URL` 和 `LLM_MODEL` |
+| OpenAI | https://platform.openai.com/ | 改 `LLM_BASE_URL` 和 `LLM_MODEL` |
+| Ollama 本地 | http://localhost:11434/v1/ | 免费，无需 API Key |
 
 ---
 
 ## 这个项目不是什么
 
-- 不是 claude-code 的完整复刻（原版有更多工具、更复杂的权限模型、更完善的错误处理）
-- 不是生产可用的工具（没有并发工具调用、没有 context window 管理）
-- 不是教你怎么用 claude-code（那个直接看官方文档）
+- 不是 claude-code 的完整复刻（原版有更多工具和更复杂的权限模型）
+- 不是生产可用的工具（没有并发工具调用、context window 管理）
+- 不是教你使用 claude-code（那直接看官方文档）
 
-它是一个**学习用的参考实现**，目标是让你读完之后能理解 AI Agent 的核心机制，然后自己动手写一个。
+它是一个**学习用的参考实现**——读完之后你能理解 AI Agent 的核心机制，然后自己动手写一个。
+
+## License
+
+MIT
