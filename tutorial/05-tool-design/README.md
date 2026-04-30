@@ -1,21 +1,21 @@
 # Lesson 5 — 工具系统设计
 
-## 行业术语：Tool Calling
+## 本课解决什么问题？
+
+第 4 课得出公式：**Agent = system prompt + query() 循环 + 工具池**。
+
+本课搞定的就是"工具池"——Agent 怎么定义工具、怎么让 LLM 知道有哪些工具、怎么统一管理工具。
+
+## 行业术语
 
 本课涉及的概念在行业里有标准叫法：
 
 | 术语 | 含义 | 本课对应 |
 |------|------|---------|
 | **Tool Schema** | 用 JSON Schema 定义工具接受什么参数（告诉 LLM 怎么用） | `input_schema` / `to_api_schema()` |
-| **Tool Calling / Function Calling** | LLM 决定调用哪个函数、传什么参数 | 第 2 步演示，第 6 课完整实现 |
-| **Tool Dispatch** | 程序根据 LLM 返回的工具名，路由到对应的处理函数 | 第 3 步的 `next((t for t in TOOLS ...))` |
+| **Tool Calling / Function Calling** | LLM 决定调用哪个函数、传什么参数 | File 2 演示，第 6 课完整实现 |
+| **Tool Dispatch** | 程序根据 LLM 返回的工具名，路由到对应的处理函数 | File 3 的 for 循环查找 |
 | **Tool Result** | 工具执行完的结果，回喂给 LLM | `call()` 的返回值 |
-
-## 不用装饰器行不行？
-
-**行。** 1-2 个工具完全不需要 ABC、@abstractmethod。直接写类就行。
-
-那什么时候需要？——当你有多个工具，需要一个 agentic loop 统一处理它们的时候。本课分 3 步，一步步告诉你为什么需要。
 
 ---
 
@@ -39,11 +39,13 @@ class EchoTool:
 
 就这么简单。名字 + 接受字典的函数。能用吗？完全能用。
 
+1-2 个工具完全不需要 ABC。那什么时候需要？——继续往下看。
+
 ---
 
 ## 文件 2：`02_tool_and_llm.py` — 怎么让 LLM 知道我们的工具？
 
-第 1 步的工具能用了，但 LLM 不知道它的存在。我们需要告诉 LLM："你有这些工具可以用"。
+File 1 的工具能用了，但 LLM 不知道它的存在。我们需要告诉 LLM："你有这些工具可以用"。
 
 ### JSON Schema：工具的"菜单"
 
@@ -200,12 +202,17 @@ class ToolResult:
 
 ```python
 # 找工具
-tool = next((t for t in TOOLS if t.name == tool_name), None)
+tool = None
+for t in TOOLS:
+    if t.name == tool_name:
+        tool = t
+        break
+
 # 调工具
 result: ToolResult = await tool.call(tool_args)
 ```
 
-不管有几个工具，这两行代码不用改。
+不管有几个工具，这两段代码不用改。这就是统一接口的价值。
 
 ```bash
 python3 03_why_abc.py
@@ -213,38 +220,23 @@ python3 03_why_abc.py
 
 ---
 
-## 上一课的连接
+## 文件 4：`04_mcp/` — 工具从哪来？MCP 实战
 
-第 4 课得出公式：**Agent = system prompt + query() 循环 + 工具池**。
+File 1-3 学了怎么定义和管理工具，但有一个前提：**工具硬编码在 agent 代码里**。
 
-本课搞定了"工具池"里工具长什么样：
-- 工具的本质：名字 + 函数（第 1 步）
-- 怎么告诉 LLM：JSON Schema（第 2 步）
-- 怎么统一管理：ABC 抽象基类（第 3 步）
+```python
+TOOLS = [EchoTool(), AddTool()]  # 写死的，加工具就要改这行
+```
 
-下一课（第 6 课）把工具接到 agentic loop 里，实现完整的 query() 循环。
+业界有一个标准协议解决这个问题：**MCP（Model Context Protocol）**。
 
-## 你知道吗？MCP（Model Context Protocol）
+MCP 做的事情和 File 1-3 一样——描述工具、传递参数、返回结果——但工具不由 agent 代码定义，而是由外部服务器提供：
 
-本课学的 Tool Schema（用 JSON 描述工具的参数），在业界有一个标准化的协议：**MCP**。
-
-它做的事情和我们第 2 步一样——描述工具、传递参数、返回结果——但做了两件我们没做的事：
-
-| | 本课的做法 | MCP 的做法 |
-|--|----------|-----------|
+| | File 1-3 | MCP |
+|--|----------|------|
 | 工具从哪来？ | 硬编码在代码里 | 外部服务器动态提供 |
-| 工具怎么描述？ | 我们手写 JSON Schema | 服务器自动返回 Schema |
-| 工具怎么执行？ | 本地 `call()` | 通过网络调用服务器 |
-
-好处：**不用改 agent 代码就能添加新工具**。只要启动一个 MCP 服务器，agent 的工具池就自动多出新的工具。
-
-Claude Code 支持通过 MCP 连接外部工具服务器（数据库查询、GitHub 操作、文件搜索等）。File 4 让你亲手操作这个流程。
-
----
-
-## 文件 4：`04_mcp/` — MCP 实战：动态工具发现 + LLM 调用
-
-前面三个文件的工具都是硬编码的（`TOOLS = [EchoTool(), ...]`）。File 4 演示另一种方式：**工具从外部 MCP 服务器动态获取**。
+| 加新工具？ | 改 agent 代码 | 只改服务器 |
+| 工具怎么调用？ | 本地 `tool.call(args)` | 通过协议 `session.call_tool()` |
 
 ```bash
 pip install "mcp[cli]"         # 先安装 MCP SDK（新增依赖）
@@ -253,23 +245,22 @@ python3 agent.py               # 启动 agent（自动启动 server.py 作为子
 # 试试：「帮我 echo hello」或「3加5等于多少」或「北京天气怎么样」
 ```
 
-### 为什么拆成两个文件？
-
-MCP 的核心是**agent 和工具服务器分离**。拆成两个独立程序才能真正体现这一点：
+### 两个独立的程序
 
 ```
 server.py（工具服务器）          agent.py（AI agent）
 ┌──────────────────┐            ┌──────────────────┐
 │  别人写的代码       │  MCP 协议  │  你写的代码         │
 │  提供 echo、add、   │ ←───────→ │  不知道有哪些工具    │
-│  get_weather      │            │  启动时自动发现      │
+│  get_weather      │  stdin/   │  启动时自动发现      │
+│                   │  stdout   │  接入 LLM           │
 └──────────────────┘            └──────────────────┘
 ```
 
 - `server.py` — MCP 服务器，定义工具。你可以把它想象成"别人维护的独立服务"
 - `agent.py` — Agent，连接服务器发现工具，接入 LLM
 
-要加新工具？只改 `server.py`，`agent.py` 完全不用动。
+agent 不需要 import server——它通过 MCP SDK 发请求，server 通过 MCP SDK 返回工具列表。就像浏览器不需要 import Web 服务器一样。
 
 ### 核心代码：MCP Schema → OpenAI Schema 转换
 
@@ -286,17 +277,9 @@ openai_tool = {
 }
 ```
 
-### 对比：硬编码 vs MCP
-
-| | File 1-3 | File 4 (MCP) |
-|---|---|---|
-| 工具定义在哪？ | agent 代码里 | 外部服务器 |
-| 加新工具？ | 改 agent 代码 | 只改服务器 |
-| 工具列表何时确定？ | 编译时（写死的） | 运行时（动态发现） |
-| 工具怎么调用？ | `tool.call(args)` | `session.call_tool(name, args)` |
-| LLM 端有区别吗？ | **没有** — LLM 看到的 tools 格式完全一样 |
-
 关键发现：对 LLM 来说，工具是硬编码还是 MCP 提供的，完全透明。LLM 只看到 `tools=[{name, schema}]`。
+
+Claude Code 支持通过 MCP 连接外部工具服务器（数据库查询、GitHub 操作、文件搜索等）。File 4 让你亲手操作这个流程。
 
 ---
 
@@ -313,3 +296,8 @@ openai_tool = {
 
 1. 在 `01_simple_tool.py` 里加一个 `MultiplyTool`（乘法工具），不用装饰器，直接用。
 2. 在 `02_tool_and_llm.py` 里，问 LLM 一个不需要工具的问题（比如"什么是 Python"），观察 `tool_calls` 是否为空——LLM 会自己判断要不要用工具。
+3. 在 `04_mcp/server.py` 里加一个新工具（比如 `multiply`），不修改 `agent.py`，重新运行 `agent.py` 看看是否自动发现了新工具。
+
+## 下一课预告
+
+本课搞定了工具长什么样。下一课把工具接到 agentic loop 里——LLM 调工具 → 结果回喂 → LLM 继续 → 循环，直到任务完成。
