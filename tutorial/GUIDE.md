@@ -142,7 +142,7 @@ Lesson 1 (API)
 | 2 | `02-streaming` | stream=True 流式输出 | 统计 chunk 数量 | 观察逐字打印 |
 | 3 | `03-multi-turn` | messages 列表多轮对话 | 加 `/clear` 命令 | 输入 `/quit` 退出 |
 | 4 | `04-async-intro` | async/await + AsyncOpenAI | 用 gather 并发两个请求 | 行为与第 3 课一样，只是写法变了 |
-| 5 | `05-tool-design` | ABC 抽象类 + JSON Schema | 实现 AddTool | 不调用 API，纯本地演示 |
+| 5 | `05-tool-design` | ABC 抽象类 + JSON Schema + MCP | 实现 AddTool | File 4 需安装 mcp 包 |
 | 6 | `06-agentic-loop` | while 循环 + tool dispatch | 观察 tool_calls 分 chunk 到达 | 说"帮我 echo hello" |
 | 7 | `07-real-tools` | subprocess + 文件读写 | 实现 FileWriteTool | 说"列出当前目录的文件" |
 | 8 | `08-robustness` | 超时 + 重试 + cwd 追踪 | 改超时为 5 秒测试 | 试"cd /tmp"和"sleep 60" |

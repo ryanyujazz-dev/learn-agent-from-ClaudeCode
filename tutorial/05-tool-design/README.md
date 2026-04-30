@@ -238,17 +238,75 @@ python3 03_why_abc.py
 
 好处：**不用改 agent 代码就能添加新工具**。只要启动一个 MCP 服务器，agent 的工具池就自动多出新的工具。
 
-Claude Code 支持通过 MCP 连接外部工具服务器（数据库查询、GitHub 操作、文件搜索等）。我们会在后续课程实际操作。
+Claude Code 支持通过 MCP 连接外部工具服务器（数据库查询、GitHub 操作、文件搜索等）。File 4 让你亲手操作这个流程。
 
 ---
 
-## 三文件递进总结
+## 文件 4：`04_mcp_demo.py` — MCP 实战：动态工具发现 + LLM 调用
+
+前面三个文件的工具都是硬编码的（`TOOLS = [EchoTool(), ...]`）。File 4 演示另一种方式：**工具从外部 MCP 服务器动态获取**。
+
+```bash
+pip install "mcp[cli]"         # 先安装 MCP SDK（新增依赖）
+python3 04_mcp_demo.py         # 启动 agent
+# 试试：「帮我 echo hello」或「3加5等于多少」或「北京天气怎么样」
+```
+
+### 架构
+
+```
+┌──────────────────────┐     MCP 协议      ┌──────────────────┐
+│  Agent（客户端模式）    │ ←──────────────→ │  MCP 服务器       │
+│                       │  stdin/stdout    │ （--server 模式） │
+│  1. list_tools()      │  → 发现工具      │  echo, add,       │
+│  2. 转成 OpenAI 格式   │                  │  get_weather      │
+│  3. 调 LLM + tools    │                  │                   │
+│  4. tool_calls        │  → call_tool()   │  执行工具          │
+│  5. 结果回喂 LLM       │  ← 返回结果      │                   │
+└──────────────────────┘                   └──────────────────┘
+```
+
+同一个文件两种模式：
+- `python3 04_mcp_demo.py --server` → MCP 服务器
+- `python3 04_mcp_demo.py` → Agent（自动启动服务器子进程）
+
+### 核心代码：MCP Schema → OpenAI Schema 转换
+
+从 MCP 服务器获取的工具描述，需要转成 OpenAI 的 `tools` 格式才能传给 LLM。两者的 JSON Schema 格式几乎一样，只是外层包装不同：
+
+```python
+# MCP 服务器返回的格式
+mcp_tool = {"name": "echo", "description": "原样返回", "inputSchema": {...}}
+
+# OpenAI 需要的格式
+openai_tool = {
+    "type": "function",
+    "function": {"name": "echo", "description": "原样返回", "parameters": {...}}
+}
+```
+
+### 对比：硬编码 vs MCP
+
+| | File 1-3 | File 4 (MCP) |
+|---|---|---|
+| 工具定义在哪？ | agent 代码里 | 外部服务器 |
+| 加新工具？ | 改 agent 代码 | 只改服务器 |
+| 工具列表何时确定？ | 编译时（写死的） | 运行时（动态发现） |
+| 工具怎么调用？ | `tool.call(args)` | `session.call_tool(name, args)` |
+| LLM 端有区别吗？ | **没有** — LLM 看到的 tools 格式完全一样 |
+
+关键发现：对 LLM 来说，工具是硬编码还是 MCP 提供的，完全透明。LLM 只看到 `tools=[{name, schema}]`。
+
+---
+
+## 四文件递进总结
 
 | 文件 | 新增概念 | 需要 API Key |
 |------|---------|-------------|
 | `01_simple_tool.py` | 工具的本质：名字 + 函数 | 不需要 |
 | `02_tool_and_llm.py` | JSON Schema、`tools` 参数、`tool_calls` 响应 | 需要 |
 | `03_why_abc.py` | ABC、`@abstractmethod`、统一接口 | 不需要 |
+| `04_mcp_demo.py` | MCP 协议、动态工具发现、Schema 转换 | 需要（+ `pip install "mcp[cli]"`）|
 
 ## 作业
 
