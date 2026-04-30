@@ -233,6 +233,8 @@ response.choices[0].message.tool_calls    # [Read(file="05..."), Read(file="06..
 
 File 1 用一次工具调用理解"结果回喂"。File 2 加上流式输出和多轮循环，才是完整的 agentic loop。
 
+> **工具从哪来？** 本课的工具是硬编码的（`TOOLS = [WeatherTool(), EchoTool()]`）。第 5 课 File 4 展示了 MCP 动态发现工具的方式——agentic loop 本身不需要改，只是工具来源不同。对 LLM 来说，tools 格式完全一样。
+
 ## 下一课预告
 
 本课的 agent 已经能调工具了，但只有 WeatherTool、EchoTool、RecommendActivityTool。
