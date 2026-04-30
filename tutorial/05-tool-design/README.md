@@ -242,33 +242,34 @@ Claude Code 支持通过 MCP 连接外部工具服务器（数据库查询、Git
 
 ---
 
-## 文件 4：`04_mcp_demo.py` — MCP 实战：动态工具发现 + LLM 调用
+## 文件 4：`04_mcp/` — MCP 实战：动态工具发现 + LLM 调用
 
 前面三个文件的工具都是硬编码的（`TOOLS = [EchoTool(), ...]`）。File 4 演示另一种方式：**工具从外部 MCP 服务器动态获取**。
 
 ```bash
 pip install "mcp[cli]"         # 先安装 MCP SDK（新增依赖）
-python3 04_mcp_demo.py         # 启动 agent
+cd 04_mcp
+python3 agent.py               # 启动 agent（自动启动 server.py 作为子进程）
 # 试试：「帮我 echo hello」或「3加5等于多少」或「北京天气怎么样」
 ```
 
-### 架构
+### 为什么拆成两个文件？
+
+MCP 的核心是**agent 和工具服务器分离**。拆成两个独立程序才能真正体现这一点：
 
 ```
-┌──────────────────────┐     MCP 协议      ┌──────────────────┐
-│  Agent（客户端模式）    │ ←──────────────→ │  MCP 服务器       │
-│                       │  stdin/stdout    │ （--server 模式） │
-│  1. list_tools()      │  → 发现工具      │  echo, add,       │
-│  2. 转成 OpenAI 格式   │                  │  get_weather      │
-│  3. 调 LLM + tools    │                  │                   │
-│  4. tool_calls        │  → call_tool()   │  执行工具          │
-│  5. 结果回喂 LLM       │  ← 返回结果      │                   │
-└──────────────────────┘                   └──────────────────┘
+server.py（工具服务器）          agent.py（AI agent）
+┌──────────────────┐            ┌──────────────────┐
+│  别人写的代码       │  MCP 协议  │  你写的代码         │
+│  提供 echo、add、   │ ←───────→ │  不知道有哪些工具    │
+│  get_weather      │            │  启动时自动发现      │
+└──────────────────┘            └──────────────────┘
 ```
 
-同一个文件两种模式：
-- `python3 04_mcp_demo.py --server` → MCP 服务器
-- `python3 04_mcp_demo.py` → Agent（自动启动服务器子进程）
+- `server.py` — MCP 服务器，定义工具。你可以把它想象成"别人维护的独立服务"
+- `agent.py` — Agent，连接服务器发现工具，接入 LLM
+
+要加新工具？只改 `server.py`，`agent.py` 完全不用动。
 
 ### 核心代码：MCP Schema → OpenAI Schema 转换
 
@@ -306,7 +307,7 @@ openai_tool = {
 | `01_simple_tool.py` | 工具的本质：名字 + 函数 | 不需要 |
 | `02_tool_and_llm.py` | JSON Schema、`tools` 参数、`tool_calls` 响应 | 需要 |
 | `03_why_abc.py` | ABC、`@abstractmethod`、统一接口 | 不需要 |
-| `04_mcp_demo.py` | MCP 协议、动态工具发现、Schema 转换 | 需要（+ `pip install "mcp[cli]"`）|
+| `04_mcp/` (server.py + agent.py) | MCP 协议、动态工具发现、Schema 转换 | 需要（+ `pip install "mcp[cli]"`）|
 
 ## 作业
 
