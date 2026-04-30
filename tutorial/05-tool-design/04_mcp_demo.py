@@ -39,6 +39,10 @@ if "--server" in sys.argv:
 
     from mcp.server.fastmcp import FastMCP
 
+    # 抑制 MCP 服务器日志，避免 INFO 级别输出污染终端
+    import logging
+    logging.getLogger("mcp").setLevel(logging.WARNING)
+
     mcp = FastMCP("demo-tools")
 
     @mcp.tool()
